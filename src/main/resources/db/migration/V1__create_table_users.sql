@@ -1,0 +1,14 @@
+CREATE TYPE user_status AS ENUM ('ATIVO', 'INATIVO', 'PENDENTE');
+CREATE TYPE user_role AS ENUM ('ADMIN', 'GERENTE', 'VOLUNTARIO', 'PADRINHO');
+
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    cpf VARCHAR(11),
+    status user_status NOT NULL DEFAULT 'PENDENTE',
+    role user_role NOT NULL DEFAULT 'PADRINHO',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
