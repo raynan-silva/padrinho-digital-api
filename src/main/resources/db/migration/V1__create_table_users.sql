@@ -7,8 +7,8 @@ CREATE TABLE users (
     email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
     cpf VARCHAR(11),
-    status user_status NOT NULL DEFAULT 'PENDENTE',
-    role user_role NOT NULL DEFAULT 'PADRINHO',
+    status TEXT NOT NULL CHECK (status IN ('ATIVO', 'INATIVO', 'PENDENTE')),
+    role TEXT NOT NULL CHECK (role IN ('ADMIN', 'GERENTE', 'VOLUNTARIO', 'PADRINHO')),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
