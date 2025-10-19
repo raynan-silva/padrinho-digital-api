@@ -3,7 +3,9 @@ package com.dnnr.padrinho_digital_api.controllers;
 import com.dnnr.padrinho_digital_api.dtos.users.AuthenticationDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.LoginResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.RegisterDTO;
+import com.dnnr.padrinho_digital_api.entities.users.Role;
 import com.dnnr.padrinho_digital_api.entities.users.User;
+import com.dnnr.padrinho_digital_api.exceptions.AdminRegistrationException;
 import com.dnnr.padrinho_digital_api.infra.security.TokenService;
 import com.dnnr.padrinho_digital_api.repositories.users.UserRepository;
 import jakarta.validation.Valid;
@@ -39,6 +41,8 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity register(@RequestBody @Valid RegisterDTO data){
+        if(data.role().equals(Role.ADMIN)) throw  new AdminRegistrationException();
+
         if(this.repository.findByEmail(data.login()) != null) return ResponseEntity.badRequest().build();
 
         String encryptedPassword = new BCryptPasswordEncoder().encode(data.password());
