@@ -42,6 +42,12 @@ public class User implements UserDetails {
     @Column(columnDefinition = "user_role")
     private Role role;
 
+    @Column(name = "password_reset_token")
+    private String passwordResetToken;
+
+    @Column(name = "password_reset_token_expiry")
+    private LocalDateTime passwordResetTokenExpiry;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
