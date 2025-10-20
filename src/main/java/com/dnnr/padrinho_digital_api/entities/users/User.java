@@ -36,7 +36,7 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "user_status")
-    private Status status;
+    private UserStatus status;
 
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "user_role")
@@ -60,7 +60,7 @@ public class User implements UserDetails {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public User(String name, Status status, String email, String password, Role role){
+    public User(String name, UserStatus status, String email, String password, Role role){
         this.email = email;
         this.password = password;
         this.role = role;
@@ -126,6 +126,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return status.equals(Status.ATIVO);
+        return status.equals(UserStatus.ATIVO);
     }
 }

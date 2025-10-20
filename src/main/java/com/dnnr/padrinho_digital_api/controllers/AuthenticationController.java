@@ -3,17 +3,15 @@ package com.dnnr.padrinho_digital_api.controllers;
 import com.dnnr.padrinho_digital_api.dtos.users.AuthenticationDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.LoginResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.RegisterDTO;
-import com.dnnr.padrinho_digital_api.entities.users.Role;
+import com.dnnr.padrinho_digital_api.dtos.users.RegisterOngDTO;
 import com.dnnr.padrinho_digital_api.entities.users.User;
-import com.dnnr.padrinho_digital_api.exceptions.AdminRegistrationException;
 import com.dnnr.padrinho_digital_api.infra.security.TokenService;
-import com.dnnr.padrinho_digital_api.repositories.users.UserRepository;
+import com.dnnr.padrinho_digital_api.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,7 +23,7 @@ public class AuthenticationController {
     @Autowired
     private AuthenticationManager authenticationManager;
     @Autowired
-    private UserRepository repository;
+    private UserService userService;
     @Autowired
     private TokenService tokenService;
 
@@ -39,16 +37,16 @@ public class AuthenticationController {
         return  ResponseEntity.ok(new LoginResponseDTO(token));
     }
 
-    @PostMapping("/register")
+    @PostMapping("/register/godfather")
     public ResponseEntity register(@RequestBody @Valid RegisterDTO data){
-        if(data.role().equals(Role.ADMIN)) throw  new AdminRegistrationException();
+        userService.registerGodfather(data);
 
-        if(this.repository.findByEmail(data.login()) != null) return ResponseEntity.badRequest().build();
+        return ResponseEntity.ok().build();
+    }
 
-        String encryptedPassword = new BCryptPasswordEncoder().encode(data.password());
-        User newUser = new User(data.name(), data.status(), data.login(), encryptedPassword, data.role());
-
-        this.repository.save(newUser);
+    @PostMapping("/register/ong")
+    public ResponseEntity registerOng(@RequestBody @Valid RegisterOngDTO data) {
+        userService.registerManager(data);
 
         return ResponseEntity.ok().build();
     }
