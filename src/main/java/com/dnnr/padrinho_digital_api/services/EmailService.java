@@ -23,6 +23,9 @@ public class EmailService {
     @Value("${app.frontend.reset-url}")
     private String frontendResetUrl;
 
+    @Value("${app.frontend.login-url}")
+    private String frontendLoginUrl;
+
     // Use @Async para não bloquear a thread da requisição
     @Async
     public void sendPasswordResetEmail(String to, String token, String userName) {
@@ -32,11 +35,13 @@ public class EmailService {
 
             // 1. Monta a URL de reset
             String resetUrl = frontendResetUrl + "?token=" + token;
+            String loginUrl = frontendLoginUrl;
 
             // 2. Prepara as variáveis para o template
             Context context = new Context();
             context.setVariable("userName", userName);
             context.setVariable("resetUrl", resetUrl);
+            context.setVariable("loginUrl", loginUrl);
 
             // 3. Processa o template Thymeleaf
             String htmlContent = templateEngine.process("password-reset-template", context);
