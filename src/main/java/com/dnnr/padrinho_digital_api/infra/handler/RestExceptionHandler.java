@@ -4,10 +4,7 @@ import com.auth0.jwt.exceptions.AlgorithmMismatchException;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
-import com.dnnr.padrinho_digital_api.exceptions.AdminRegistrationException;
-import com.dnnr.padrinho_digital_api.exceptions.DuplicateOngException;
-import com.dnnr.padrinho_digital_api.exceptions.DuplicateUserException;
-import com.dnnr.padrinho_digital_api.exceptions.OngRegistrationException;
+import com.dnnr.padrinho_digital_api.exceptions.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -38,6 +35,32 @@ public class RestExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(errors);
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<?> handleUsernameNotFound(UserNotFoundException ex) {
+        // Nota: Por segurança, você pode querer retornar a mesma mensagem
+        // do sucesso ("Email enviado se existir") para evitar enumeração de usuários.
+        // Mas para debug, retornar o erro é útil.
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    // Handler para token inválido
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<?> handleInvalidToken(InvalidTokenException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    // Handler para token expirado
+    @ExceptionHandler(ExpiredTokenException.class)
+    public ResponseEntity<?> handleTokenExpired(ExpiredTokenException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", ex.getMessage()));
     }
 
     @ExceptionHandler(AdminRegistrationException.class)
