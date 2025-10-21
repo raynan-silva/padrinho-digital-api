@@ -5,6 +5,7 @@ import com.dnnr.padrinho_digital_api.exceptions.ExpiredTokenException;
 import com.dnnr.padrinho_digital_api.exceptions.InvalidTokenException;
 import com.dnnr.padrinho_digital_api.exceptions.UserNotFoundException;
 import com.dnnr.padrinho_digital_api.repositories.users.UserRepository;
+import jakarta.mail.SendFailedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,27 +33,20 @@ public class PasswordResetService {
      * Passo 1: Usuário pede a redefinição
      */
     @Transactional
-    public void requestPasswordReset(String email) {
-        // Valida se o usuário existe
-        // NOTA: findByEmail deve retornar User, não UserDetails, ajuste seu repo
+    public void requestPasswordReset(String email) throws SendFailedException {
         User user = (User) userRepository.findByEmail(email);
         if (user == null) {
-            // Lançar exceção ou retornar silenciosamente?
-            // Lançar é mais fácil de debugar, mas retornar silenciosamente
-            // previne "enumeração de usuários". Vamos lançar por clareza.
+
             throw new UserNotFoundException("Usuário não encontrado com o email: " + email);
         }
 
-        // Gera o token
         String token = UUID.randomUUID().toString();
         LocalDateTime expiryDate = LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES);
 
-        // Salva o token e a expiração no usuário
         user.setPasswordResetToken(token);
         user.setPasswordResetTokenExpiry(expiryDate);
         userRepository.save(user);
 
-        // Envia o email (assíncrono)
         emailService.sendPasswordResetEmail(user.getEmail(), token, user.getName());
     }
 
@@ -69,13 +63,12 @@ public class PasswordResetService {
      */
     @Transactional
     public void resetPassword(String token, String newPassword) {
-        // Valida o token e busca o usuário
+
         User user = validateTokenInternal(token);
 
-        // Atualiza a senha
+
         user.setPassword(passwordEncoder.encode(newPassword));
 
-        // Invalida o token para não ser usado novamente
         user.setPasswordResetToken(null);
         user.setPasswordResetTokenExpiry(null);
 

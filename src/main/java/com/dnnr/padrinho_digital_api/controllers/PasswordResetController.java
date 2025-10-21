@@ -3,6 +3,7 @@ package com.dnnr.padrinho_digital_api.controllers;
 import com.dnnr.padrinho_digital_api.dtos.users.ForgotPasswordDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.ResetPasswordDTO;
 import com.dnnr.padrinho_digital_api.services.PasswordResetService;
+import jakarta.mail.SendFailedException;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class PasswordResetController {
      * Recebe o email.
      */
     @PostMapping("/forgot")
-    public ResponseEntity<String> forgotPassword(@RequestBody @Valid ForgotPasswordDTO dto) {
+    public ResponseEntity<String> forgotPassword(@RequestBody @Valid ForgotPasswordDTO dto) throws SendFailedException {
         passwordResetService.requestPasswordReset(dto.email());
         return ResponseEntity.ok("Se o email estiver cadastrado, um link de redefinição será enviado.");
     }

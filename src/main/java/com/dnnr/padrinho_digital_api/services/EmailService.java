@@ -1,6 +1,7 @@
 package com.dnnr.padrinho_digital_api.services;
 
 import jakarta.mail.MessagingException;
+import jakarta.mail.SendFailedException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,7 +29,7 @@ public class EmailService {
 
     // Use @Async para não bloquear a thread da requisição
     @Async
-    public void sendPasswordResetEmail(String to, String token, String userName) {
+    public void sendPasswordResetEmail(String to, String token, String userName) throws SendFailedException {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
@@ -55,9 +56,7 @@ public class EmailService {
             mailSender.send(mimeMessage);
 
         } catch (MessagingException e) {
-            // Logar o erro
-            // Lançar uma exceção interna se necessário
-            System.err.println("Erro ao enviar email: " + e.getMessage());
+            throw new SendFailedException("Erro ao enviar email de recuperação de senha");
         }
     }
 }

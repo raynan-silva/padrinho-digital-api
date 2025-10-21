@@ -37,6 +37,13 @@ public class RestExceptionHandler {
                 .body(errors);
     }
 
+    @ExceptionHandler(EmailSendingException.class)
+    public ResponseEntity<?> handleEmailSendingException(EmailSendingException ex){
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<?> handleUsernameNotFound(UserNotFoundException ex) {
         // Nota: Por segurança, você pode querer retornar a mesma mensagem
