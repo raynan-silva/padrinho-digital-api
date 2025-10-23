@@ -44,6 +44,20 @@ public class RestExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
+    @ExceptionHandler(OngNotFoundException.class)
+    public ResponseEntity<?> handleOngNotFoundException(OngNotFoundException ex){
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(MissingParameterException.class)
+    public ResponseEntity<?> handleMissingParameterException(MissingParameterException ex){
+        return ResponseEntity
+                .status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<?> handleUsernameNotFound(UserNotFoundException ex) {
         // Nota: Por segurança, você pode querer retornar a mesma mensagem

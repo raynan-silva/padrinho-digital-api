@@ -74,6 +74,15 @@ public class User implements UserDetails {
         this.name = name;
     }
 
+    public User(String name, String email, String password, String cpf, UserStatus status, Role role) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.cpf = cpf;
+        this.status = status;
+        this.role = role;
+    }
+
     // Métodos do Spring Security
 
     @Override

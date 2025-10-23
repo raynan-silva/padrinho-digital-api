@@ -1,4 +1,4 @@
-package com.dnnr.padrinho_digital_api.controllers;
+package com.dnnr.padrinho_digital_api.controllers.auth;
 
 import com.dnnr.padrinho_digital_api.dtos.users.ForgotPasswordDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.ResetPasswordDTO;

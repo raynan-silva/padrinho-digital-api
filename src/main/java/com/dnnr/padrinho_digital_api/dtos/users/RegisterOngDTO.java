@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Email;
+import org.hibernate.validator.constraints.br.CNPJ;
 
 public record RegisterOngDTO(
         @NotBlank(message = "O login (email) é obrigatório.")
@@ -24,7 +25,7 @@ public record RegisterOngDTO(
         String ong_name,
 
         @NotBlank(message = "O CNPJ é obrigatório.")
-        @Size(min = 14, max = 14, message = "O CNPJ deve ter exatamente 14 caracteres.")
+        @CNPJ(message = "O CNPJ informado é inválido.")
         String cnpj,
 
         @NotBlank(message = "O telefone é obrigatório.")

@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 
@@ -35,7 +36,7 @@ public class Pet {
     private String breed;
 
     @Column(nullable = false)
-    private double weight;
+    private BigDecimal weight;
 
     @Column(name = "date_of_admission", nullable = false)
     private LocalDate dateOfAdmission;
@@ -59,7 +60,7 @@ public class Pet {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Pet(String name, LocalDate birthDate, PetStatus status, String breed, double weight, LocalDate dateOfAdmission, PetGender gender, String profile, Ong ong) {
+    public Pet(String name, LocalDate birthDate, PetStatus status, String breed, BigDecimal weight, LocalDate dateOfAdmission, PetGender gender, String profile, Ong ong) {
         this.name = name;
         this.birthDate = birthDate;
         this.status = status;
