@@ -1,4 +1,4 @@
-package com.dnnr.padrinho_digital_api.services;
+package com.dnnr.padrinho_digital_api.services.user;
 
 import com.dnnr.padrinho_digital_api.dtos.users.RegisterDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.RegisterOngDTO;
@@ -14,7 +14,6 @@ import com.dnnr.padrinho_digital_api.repositories.users.GodfatherRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.ManagerRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

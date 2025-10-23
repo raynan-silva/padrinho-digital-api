@@ -1,4 +1,4 @@
-package com.dnnr.padrinho_digital_api.services;
+package com.dnnr.padrinho_digital_api.services.auth;
 
 import com.dnnr.padrinho_digital_api.repositories.users.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;

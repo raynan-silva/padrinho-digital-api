@@ -1,10 +1,11 @@
-package com.dnnr.padrinho_digital_api.services;
+package com.dnnr.padrinho_digital_api.services.auth;
 
 import com.dnnr.padrinho_digital_api.entities.users.User;
 import com.dnnr.padrinho_digital_api.exceptions.ExpiredTokenException;
 import com.dnnr.padrinho_digital_api.exceptions.InvalidTokenException;
 import com.dnnr.padrinho_digital_api.exceptions.UserNotFoundException;
 import com.dnnr.padrinho_digital_api.repositories.users.UserRepository;
+import com.dnnr.padrinho_digital_api.services.mail.EmailService;
 import jakarta.mail.SendFailedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;

@@ -6,7 +6,7 @@ import com.dnnr.padrinho_digital_api.dtos.users.RegisterDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.RegisterOngDTO;
 import com.dnnr.padrinho_digital_api.entities.users.User;
 import com.dnnr.padrinho_digital_api.infra.security.TokenService;
-import com.dnnr.padrinho_digital_api.services.UserService;
+import com.dnnr.padrinho_digital_api.services.user.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

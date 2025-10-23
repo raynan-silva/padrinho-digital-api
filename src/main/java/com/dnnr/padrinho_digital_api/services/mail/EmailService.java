@@ -1,4 +1,4 @@
-package com.dnnr.padrinho_digital_api.services;
+package com.dnnr.padrinho_digital_api.services.mail;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.SendFailedException;

@@ -2,7 +2,7 @@ package com.dnnr.padrinho_digital_api.controllers;
 
 import com.dnnr.padrinho_digital_api.dtos.users.ForgotPasswordDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.ResetPasswordDTO;
-import com.dnnr.padrinho_digital_api.services.PasswordResetService;
+import com.dnnr.padrinho_digital_api.services.auth.PasswordResetService;
 import jakarta.mail.SendFailedException;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
