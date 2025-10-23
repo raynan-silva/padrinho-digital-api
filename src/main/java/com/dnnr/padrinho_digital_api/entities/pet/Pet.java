@@ -59,7 +59,7 @@ public class Pet {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Pet(String name, LocalDate birthDate, PetStatus status, String breed, double weight, LocalDate dateOfAdmission, PetGender gender, String profile) {
+    public Pet(String name, LocalDate birthDate, PetStatus status, String breed, double weight, LocalDate dateOfAdmission, PetGender gender, String profile, Ong ong) {
         this.name = name;
         this.birthDate = birthDate;
         this.status = status;
@@ -68,5 +68,6 @@ public class Pet {
         this.dateOfAdmission = dateOfAdmission;
         this.gender = gender;
         this.profile = profile;
+        this.ong = ong;
     }
 }
