@@ -34,14 +34,23 @@ public class SecurityConfigurations {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize -> authorize
+                        // Admin
+                        .requestMatchers(HttpMethod.POST, "/admin/**").hasRole("ADMIN")
+
+                        // Auth
                         .requestMatchers(HttpMethod.GET, "/auth/password/validate-token").permitAll()
                         .requestMatchers(HttpMethod.POST, "auth/password/forgot").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/password/reset").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/register/godfather").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/register/ong").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/auth/register/volunteer").hasRole("GERENTE")
+
+                        // PET
+                        .requestMatchers(HttpMethod.POST, "/pet").hasAnyRole("GERENTE", "VOLUNTARIO")
+                        .requestMatchers(HttpMethod.PUT, "/pet/{id}").hasAnyRole("GERENTE", "VOLUNTARIO")
+                        .requestMatchers(HttpMethod.DELETE, "/pet/{id}").hasAnyRole("GERENTE", "VOLUNTARIO")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)

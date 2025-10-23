@@ -51,6 +51,13 @@ public class RestExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
+    @ExceptionHandler(PetNotFoundException.class)
+    public ResponseEntity<?> handlePetNotFoundException(PetNotFoundException ex){
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(MissingParameterException.class)
     public ResponseEntity<?> handleMissingParameterException(MissingParameterException ex){
         return ResponseEntity
