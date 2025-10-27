@@ -48,6 +48,9 @@ public class User implements UserDetails {
     @Column(name = "password_reset_token_expiry")
     private LocalDateTime passwordResetTokenExpiry;
 
+    @Column(columnDefinition = "TEXT")
+    private String photo;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
