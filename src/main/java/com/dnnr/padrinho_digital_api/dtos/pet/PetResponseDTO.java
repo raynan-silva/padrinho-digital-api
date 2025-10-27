@@ -3,9 +3,12 @@ package com.dnnr.padrinho_digital_api.dtos.pet;
 import com.dnnr.padrinho_digital_api.entities.pet.Pet;
 import com.dnnr.padrinho_digital_api.entities.pet.PetGender;
 import com.dnnr.padrinho_digital_api.entities.pet.PetStatus;
+import com.dnnr.padrinho_digital_api.entities.photo.Photo;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 
 public record PetResponseDTO(
         Long id,
@@ -18,7 +21,8 @@ public record PetResponseDTO(
         PetGender gender,
         String profile,
         Long ongId,
-        String ongName
+        String ongName,
+        List<String> photos
 ) {
     // Construtor de conveniência para mapear da Entidade Pet
     public PetResponseDTO(Pet pet) {
@@ -33,7 +37,10 @@ public record PetResponseDTO(
                 pet.getGender(),
                 pet.getProfile(),
                 pet.getOng().getId(),
-                pet.getOng().getName()
+                pet.getOng().getName(),
+                pet.getPhotos() != null ?
+                        pet.getPhotos().stream().map(Photo::getPhoto).toList() :
+                        Collections.emptyList()
         );
     }
 }
