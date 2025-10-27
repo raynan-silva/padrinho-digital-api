@@ -1,5 +1,6 @@
 package com.dnnr.padrinho_digital_api.entities.ong;
 
+import com.dnnr.padrinho_digital_api.entities.photo.Photo;
 import com.dnnr.padrinho_digital_api.entities.users.Manager;
 import jakarta.persistence.*;
 import lombok.*;
@@ -44,6 +45,14 @@ public class Ong {
 
     @OneToMany(mappedBy = "ong", fetch = FetchType.LAZY)
     private List<Manager> managers;
+
+    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinTable(
+            name = "ong_has_photo",
+            joinColumns = @JoinColumn(name = "ong_id"),
+            inverseJoinColumns = @JoinColumn(name = "photo_id")
+    )
+    private List<Photo> photos;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
