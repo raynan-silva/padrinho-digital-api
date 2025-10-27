@@ -7,11 +7,14 @@ import com.dnnr.padrinho_digital_api.entities.ong.Ong;
 import com.dnnr.padrinho_digital_api.entities.pet.Pet;
 import com.dnnr.padrinho_digital_api.entities.pet.PetGender;
 import com.dnnr.padrinho_digital_api.entities.pet.PetStatus;
+import com.dnnr.padrinho_digital_api.entities.photo.Photo;
 import com.dnnr.padrinho_digital_api.entities.users.Manager;
 import com.dnnr.padrinho_digital_api.entities.users.User;
 import com.dnnr.padrinho_digital_api.entities.users.Volunteer;
 import com.dnnr.padrinho_digital_api.exceptions.PetNotFoundException;
+import com.dnnr.padrinho_digital_api.exceptions.ResourceNotFoundException;
 import com.dnnr.padrinho_digital_api.repositories.pet.PetRepository;
+import com.dnnr.padrinho_digital_api.repositories.photo.PhotoRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.ManagerRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.VolunteerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +24,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PetService {
@@ -36,17 +39,27 @@ public class PetService {
     @Autowired
     VolunteerRepository volunteerRepository;
 
+    @Autowired
+    PhotoRepository photoRepository;
+
     /**
      * CREATE
      * Cria um novo pet e o associa à ONG do usuário autenticado.
      */
     @Transactional
     public PetResponseDTO createPet(CreatePetDTO data, User authenticatedUser){
-
+        System.out.println("AQUIIUIUIU");
         Ong ong = getOngFromUser(authenticatedUser);
 
         Pet pet = new Pet(data.name(), data.birth_date(), PetStatus.APADRINHAVEL, data.breed(), data.weight(),
                 data.date_of_admission(), data.gender(), data.profile(), ong);
+
+        if (data.photos() != null && !data.photos().isEmpty()) {
+            List<Photo> photoList = data.photos().stream()
+                    .map(Photo::new)
+                    .collect(Collectors.toList());
+            pet.setPhotos(photoList);
+        }
 
         Pet savedPet = repository.save(pet);
 
@@ -71,7 +84,7 @@ public class PetService {
      */
     @Transactional(readOnly = true)
     public PetResponseDTO getPetById(Long id) {
-        Pet pet = repository.findById(id)
+        Pet pet = repository.findByIdWithPhotos(id)
                 .orElseThrow(() -> new PetNotFoundException("Pet com ID " + id + " não encontrado."));
         return new PetResponseDTO(pet);
     }
@@ -119,6 +132,42 @@ public class PetService {
         // 3. Exclusão Lógica
         pet.setStatus(PetStatus.INDISPONIVEL);
         repository.save(pet);
+    }
+
+    @Transactional
+    public PetResponseDTO addPhotos(Long petId, List<String> base64Photos, User authenticatedUser) {
+        Pet pet = repository.findById(petId)
+                .orElseThrow(() -> new PetNotFoundException("Pet com ID " + petId + " não encontrado"));
+
+        checkUserOngPermission(authenticatedUser, pet.getOng());
+
+        List<Photo> newPhotos = base64Photos.stream()
+                .map(Photo::new)
+                .toList();
+
+        pet.getPhotos().addAll(newPhotos);
+
+        repository.save(pet);
+
+        return getPetById(petId);
+    }
+
+    @Transactional
+    public void removePhoto(Long petId, Long photoId, User authenticatedUser) {
+        Pet pet = repository.findById(petId)
+                .orElseThrow(() -> new PetNotFoundException("Pet com ID " + petId + " não encontrado"));
+
+        checkUserOngPermission(authenticatedUser, pet.getOng());
+
+        Photo photoToRemove = pet.getPhotos().stream()
+                .filter(p -> p.getId().equals(photoId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Foto com ID " + photoId + " não encontrda."));
+
+        pet.getPhotos().remove(photoToRemove);
+        repository.save(pet);
+
+        photoRepository.delete(photoToRemove);
     }
 
     // --- MÉTODOS AUXILIARES ---

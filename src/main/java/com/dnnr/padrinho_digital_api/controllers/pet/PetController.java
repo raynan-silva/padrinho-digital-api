@@ -3,6 +3,7 @@ package com.dnnr.padrinho_digital_api.controllers.pet;
 import com.dnnr.padrinho_digital_api.dtos.pet.CreatePetDTO;
 import com.dnnr.padrinho_digital_api.dtos.pet.PetResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.pet.UpdatePetDTO;
+import com.dnnr.padrinho_digital_api.dtos.photo.AddPhotosDTO;
 import com.dnnr.padrinho_digital_api.entities.users.User;
 import com.dnnr.padrinho_digital_api.services.pet.PetService;
 import jakarta.validation.Valid;
@@ -60,5 +61,25 @@ public class PetController {
                                           @AuthenticationPrincipal User authenticatedUser) {
         petService.deletePet(id, authenticatedUser);
         return ResponseEntity.noContent().build(); // Retorna 204 No Content
+    }
+
+    @PostMapping("/{id}/photos")
+    public ResponseEntity<PetResponseDTO> addPhotosToPet(
+            @PathVariable Long id,
+            @RequestBody @Valid AddPhotosDTO data,
+            @AuthenticationPrincipal User authenticatedUser) {
+
+        PetResponseDTO updatedPet = petService.addPhotos(id, data.photos(), authenticatedUser);
+        return ResponseEntity.ok(updatedPet);
+    }
+
+    @DeleteMapping("/{id}/photos/{photoId}")
+    public ResponseEntity<Void> removePhotoFromPet(
+            @PathVariable Long id,
+            @PathVariable Long photoId,
+            @AuthenticationPrincipal User authenticatedUser) {
+
+        petService.removePhoto(id, photoId, authenticatedUser);
+        return ResponseEntity.noContent().build();
     }
 }
