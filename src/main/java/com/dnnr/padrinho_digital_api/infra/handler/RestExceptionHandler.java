@@ -58,8 +58,8 @@ public class RestExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
-    @ExceptionHandler(PetNotFoundException.class)
-    public ResponseEntity<?> handlePetNotFoundException(PetNotFoundException ex){
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<?> handlePetNotFoundException(NotFoundException ex){
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", ex.getMessage()));

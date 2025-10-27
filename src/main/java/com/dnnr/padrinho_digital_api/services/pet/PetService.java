@@ -5,13 +5,12 @@ import com.dnnr.padrinho_digital_api.dtos.pet.PetResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.pet.UpdatePetDTO;
 import com.dnnr.padrinho_digital_api.entities.ong.Ong;
 import com.dnnr.padrinho_digital_api.entities.pet.Pet;
-import com.dnnr.padrinho_digital_api.entities.pet.PetGender;
 import com.dnnr.padrinho_digital_api.entities.pet.PetStatus;
 import com.dnnr.padrinho_digital_api.entities.photo.Photo;
 import com.dnnr.padrinho_digital_api.entities.users.Manager;
 import com.dnnr.padrinho_digital_api.entities.users.User;
 import com.dnnr.padrinho_digital_api.entities.users.Volunteer;
-import com.dnnr.padrinho_digital_api.exceptions.PetNotFoundException;
+import com.dnnr.padrinho_digital_api.exceptions.NotFoundException;
 import com.dnnr.padrinho_digital_api.exceptions.ResourceNotFoundException;
 import com.dnnr.padrinho_digital_api.repositories.pet.PetRepository;
 import com.dnnr.padrinho_digital_api.repositories.photo.PhotoRepository;
@@ -85,7 +84,7 @@ public class PetService {
     @Transactional(readOnly = true)
     public PetResponseDTO getPetById(Long id) {
         Pet pet = repository.findByIdWithPhotos(id)
-                .orElseThrow(() -> new PetNotFoundException("Pet com ID " + id + " não encontrado."));
+                .orElseThrow(() -> new NotFoundException("Pet com ID " + id + " não encontrado."));
         return new PetResponseDTO(pet);
     }
 
@@ -97,7 +96,7 @@ public class PetService {
     public PetResponseDTO updatePet(Long id, UpdatePetDTO data, User authenticatedUser) {
         // 1. Busca o pet
         Pet pet = repository.findById(id)
-                .orElseThrow(() -> new PetNotFoundException("Pet com ID " + id + " não encontrado."));
+                .orElseThrow(() -> new NotFoundException("Pet com ID " + id + " não encontrado."));
 
         // 2. Validação de segurança: O usuário pertence à ONG deste pet?
         checkUserOngPermission(authenticatedUser, pet.getOng());
@@ -124,7 +123,7 @@ public class PetService {
     public void deletePet(Long id, User authenticatedUser) {
         // 1. Busca o pet
         Pet pet = repository.findById(id)
-                .orElseThrow(() -> new PetNotFoundException("Pet com ID " + id + " não encontrado."));
+                .orElseThrow(() -> new NotFoundException("Pet com ID " + id + " não encontrado."));
 
         // 2. Validação de segurança
         checkUserOngPermission(authenticatedUser, pet.getOng());
@@ -137,7 +136,7 @@ public class PetService {
     @Transactional
     public PetResponseDTO addPhotos(Long petId, List<String> base64Photos, User authenticatedUser) {
         Pet pet = repository.findById(petId)
-                .orElseThrow(() -> new PetNotFoundException("Pet com ID " + petId + " não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Pet com ID " + petId + " não encontrado"));
 
         checkUserOngPermission(authenticatedUser, pet.getOng());
 
@@ -155,7 +154,7 @@ public class PetService {
     @Transactional
     public void removePhoto(Long petId, Long photoId, User authenticatedUser) {
         Pet pet = repository.findById(petId)
-                .orElseThrow(() -> new PetNotFoundException("Pet com ID " + petId + " não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Pet com ID " + petId + " não encontrado"));
 
         checkUserOngPermission(authenticatedUser, pet.getOng());
 
