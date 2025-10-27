@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 public record CreatePetDTO(
         @NotBlank(message = "O nome é obrigatório.")
@@ -30,6 +31,9 @@ public record CreatePetDTO(
 
         @NotBlank(message = "O perfil é obrigatório.")
         @Size(min = 20, message = "O perfil deve ter no mínimo 20 caracteres.")
-        String profile
+        String profile,
+
+        @Size(max = 5, message = "Você pode no máximo 5 fotos.")
+        List<@NotBlank(message = "A foto em Base64 não pode ser nula ou vaizia.") String> photos
 ) {
 }
