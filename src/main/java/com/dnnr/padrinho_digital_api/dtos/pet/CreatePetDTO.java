@@ -1,6 +1,7 @@
 package com.dnnr.padrinho_digital_api.dtos.pet;
 
 import com.dnnr.padrinho_digital_api.entities.pet.PetGender;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -34,6 +35,9 @@ public record CreatePetDTO(
         String profile,
 
         @Size(max = 5, message = "Você pode no máximo 5 fotos.")
-        List<@NotBlank(message = "A foto em Base64 não pode ser nula ou vaizia.") String> photos
+        List<@NotBlank(message = "A foto em Base64 não pode ser nula ou vaizia.") String> photos,
+
+        @Valid
+        List<PetCostItemDTO> costs
 ) {
 }

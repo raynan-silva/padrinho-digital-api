@@ -62,6 +62,9 @@ public class Pet {
     )
     private List<Photo> photos;
 
+    @OneToMany(mappedBy = "pet", fetch = FetchType.LAZY)
+    private List<Cost> costs;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

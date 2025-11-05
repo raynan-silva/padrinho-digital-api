@@ -1,9 +1,13 @@
 package com.dnnr.padrinho_digital_api.services.pet;
 
+import com.dnnr.padrinho_digital_api.dtos.cost.CostResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.pet.CreatePetDTO;
+import com.dnnr.padrinho_digital_api.dtos.pet.PetCostItemDTO;
 import com.dnnr.padrinho_digital_api.dtos.pet.PetResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.pet.UpdatePetDTO;
 import com.dnnr.padrinho_digital_api.entities.ong.Ong;
+import com.dnnr.padrinho_digital_api.entities.pet.Cost;
+import com.dnnr.padrinho_digital_api.entities.pet.CostHistory;
 import com.dnnr.padrinho_digital_api.entities.pet.Pet;
 import com.dnnr.padrinho_digital_api.entities.pet.PetStatus;
 import com.dnnr.padrinho_digital_api.entities.photo.Photo;
@@ -12,10 +16,13 @@ import com.dnnr.padrinho_digital_api.entities.users.User;
 import com.dnnr.padrinho_digital_api.entities.users.Volunteer;
 import com.dnnr.padrinho_digital_api.exceptions.NotFoundException;
 import com.dnnr.padrinho_digital_api.exceptions.ResourceNotFoundException;
+import com.dnnr.padrinho_digital_api.repositories.pet.CostRepository;
 import com.dnnr.padrinho_digital_api.repositories.pet.PetRepository;
+import com.dnnr.padrinho_digital_api.repositories.pet.PetWithTotalCostProjection;
 import com.dnnr.padrinho_digital_api.repositories.photo.PhotoRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.ManagerRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.VolunteerRepository;
+import com.dnnr.padrinho_digital_api.services.cost.CostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +48,12 @@ public class PetService {
     @Autowired
     PhotoRepository photoRepository;
 
+    @Autowired
+    CostRepository costRepository;
+
+    @Autowired
+    CostService costService;
+
     /**
      * CREATE
      * Cria um novo pet e o associa à ONG do usuário autenticado.
@@ -62,6 +75,24 @@ public class PetService {
 
         Pet savedPet = repository.save(pet);
 
+        if (data.costs() != null && !data.costs().isEmpty()) {
+            for (PetCostItemDTO costDTO : data.costs()) {
+                Cost cost = new Cost();
+                cost.setPet(savedPet);
+
+                CostHistory history = new CostHistory();
+                history.setCost(cost);
+                history.setName(costDTO.name());
+                history.setDescription(costDTO.description());
+                history.setMonthlyAmount(costDTO.monthlyAmount());
+                history.setStartDate(costDTO.startDate());
+                history.setEndDate(null);
+
+                cost.setHistory(List.of(history));
+                costRepository.save(cost); // Salva cada despesa
+            }
+        }
+
         return new PetResponseDTO(savedPet);
     }
 
@@ -69,23 +100,36 @@ public class PetService {
      * READ (Paginated)
      * Retorna todos os pets de forma paginada.
      */
+    /**
+     * READ (All)
+     * Retorna todos os pets paginados com o custo total de despesas ativas.
+     */
     @Transactional(readOnly = true)
     public Page<PetResponseDTO> getAllPets(Pageable pageable) {
-        // Busca a página de entidades
-        Page<Pet> petPage = repository.findAll(pageable);
-        // Mapeia a página de entidades para uma página de DTOs
-        return petPage.map(PetResponseDTO::new);
+        // Usa a nova query customizada que retorna a projeção
+        Page<PetWithTotalCostProjection> petPage = repository.findAllWithTotalCost(pageable);
+
+        // Mapeia a projeção para o PetResponseDTO usando o construtor de listagem
+        return petPage.map(projection ->
+                new PetResponseDTO(projection.getPet(), projection.getTotalCost())
+        );
     }
 
     /**
      * READ (By ID)
-     * Retorna um pet específico pelo ID.
+     * Retorna um pet específico pelo ID com a lista detalhada de despesas.
      */
     @Transactional(readOnly = true)
     public PetResponseDTO getPetById(Long id) {
+        // 1. Busca o pet (usando sua query que já busca fotos)
         Pet pet = repository.findByIdWithPhotos(id)
                 .orElseThrow(() -> new NotFoundException("Pet com ID " + id + " não encontrado."));
-        return new PetResponseDTO(pet);
+
+        // 2. Busca a lista de despesas detalhadas usando o CostService
+        List<CostResponseDTO> costs = costService.findAllByPetId(id);
+
+        // 3. Usa o novo construtor de detalhe do DTO
+        return new PetResponseDTO(pet, costs);
     }
 
     /**
@@ -174,7 +218,7 @@ public class PetService {
     /**
      * Encontra a ONG associada a um usuário (Gerente ou Voluntário).
      */
-    private Ong getOngFromUser(User user) {
+    public Ong getOngFromUser(User user) {
         // Tenta encontrar como Gerente
         Optional<Manager> manager = managerRepository.findByUser(user);
         if (manager.isPresent()) {

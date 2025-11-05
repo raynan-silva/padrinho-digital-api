@@ -11,10 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("auth")
@@ -28,8 +25,11 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     public ResponseEntity login(@RequestBody @Valid AuthenticationDTO data){
+        System.out.println("aquiiui");
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
         var auth = this.authenticationManager.authenticate(usernamePassword);
+
+        System.out.println("Auth: " + auth);
 
         var token = tokenService.generateToken((User) auth.getPrincipal());
 
@@ -55,5 +55,11 @@ public class AuthenticationController {
                                             @AuthenticationPrincipal User authenticatedUser) {
         userService.registerVolunteer(data, authenticatedUser);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity profile(@AuthenticationPrincipal User authenticatedUser) {
+        ProfileResponseDTO response = new ProfileResponseDTO(authenticatedUser.getId(), authenticatedUser.getName(), authenticatedUser.getEmail(), authenticatedUser.getRole());
+        return ResponseEntity.ok(response);
     }
 }

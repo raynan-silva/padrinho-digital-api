@@ -20,6 +20,13 @@ import java.util.Map;
 @RestControllerAdvice
 public class RestExceptionHandler {
 
+    @ExceptionHandler(BusinessException.class)
+    public  ResponseEntity<?> handleBusinessException(BusinessException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body((Map.of("error", ex.getMessage())));
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<?> handleResourceNotFoundException(ResourceNotFoundException ex) {
         return ResponseEntity
@@ -62,6 +69,13 @@ public class RestExceptionHandler {
     public ResponseEntity<?> handlePetNotFoundException(NotFoundException ex){
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(SponsorshipException.class)
+    public ResponseEntity<?> handleSponsorshipException(SponsorshipException ex){
+        return  ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", ex.getMessage()));
     }
 
