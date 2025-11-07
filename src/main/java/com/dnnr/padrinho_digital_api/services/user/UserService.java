@@ -6,6 +6,7 @@ import com.dnnr.padrinho_digital_api.dtos.users.RegisterVolunteerDTO;
 import com.dnnr.padrinho_digital_api.entities.ong.Address;
 import com.dnnr.padrinho_digital_api.entities.ong.Ong;
 import com.dnnr.padrinho_digital_api.entities.ong.OngStatus;
+import com.dnnr.padrinho_digital_api.entities.photo.Photo;
 import com.dnnr.padrinho_digital_api.entities.users.*;
 import com.dnnr.padrinho_digital_api.exceptions.*;
 import com.dnnr.padrinho_digital_api.repositories.ong.AddressRepository;
@@ -100,6 +101,10 @@ public class UserService {
 
         String encryptedPassword = passwordEncoder.encode(data.password());
         User newUser = new User(data.name(), data.login(), encryptedPassword, data.cpf(),UserStatus.ATIVO, Role.VOLUNTARIO);
+
+        if (data.photo() != null) {
+            newUser.setPhoto(data.photo());
+        }
 
         User user = this.repository.save(newUser);
 

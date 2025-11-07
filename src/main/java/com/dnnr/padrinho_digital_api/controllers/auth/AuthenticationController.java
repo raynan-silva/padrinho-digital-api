@@ -59,7 +59,7 @@ public class AuthenticationController {
 
     @GetMapping("/profile")
     public ResponseEntity profile(@AuthenticationPrincipal User authenticatedUser) {
-        ProfileResponseDTO response = new ProfileResponseDTO(authenticatedUser.getId(), authenticatedUser.getName(), authenticatedUser.getEmail(), authenticatedUser.getRole());
+        ProfileResponseDTO response = new ProfileResponseDTO(authenticatedUser.getId(), authenticatedUser.getName(), authenticatedUser.getEmail(), authenticatedUser.getRole(), authenticatedUser.getPhoto());
         return ResponseEntity.ok(response);
     }
 }

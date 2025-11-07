@@ -2,7 +2,6 @@ package com.dnnr.padrinho_digital_api.dtos.users;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.br.CPF;
 
@@ -21,6 +20,8 @@ public record RegisterVolunteerDTO(
         @NotBlank(message = "O CPF é obrigatório.")
         @CPF(message = "O CPF informado é inválido.")
         String cpf,
+
+        String photo,
 
         Long org_id
 ) {
