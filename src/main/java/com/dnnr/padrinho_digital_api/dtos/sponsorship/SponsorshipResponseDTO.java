@@ -17,8 +17,8 @@ public record SponsorshipResponseDTO(
         OngInfoDTO ong,
         SponsorshipStatus currentStatus,
         BigDecimal currentAmount,
-        LocalDate currentStartDate,
-        List<HistoryItemDTO> history
+        LocalDate currentStartDate
+        //List<HistoryItemDTO> history
 ) {
     public SponsorshipResponseDTO(Sponsorship s, SponsorshipHistory current) {
         this(
@@ -28,10 +28,10 @@ public record SponsorshipResponseDTO(
                 new OngInfoDTO(s.getPet().getOng()), // Pega a ONG através do Pet
                 current.getStatus(),
                 current.getMonthlyAmount(),
-                current.getStartDate(),
-                s.getHistory().stream() // Mapeia o histórico completo
-                        .map(HistoryItemDTO::new)
-                        .collect(Collectors.toList())
+                current.getStartDate()
+//                s.getHistory().stream() // Mapeia o histórico completo
+//                        .map(HistoryItemDTO::new)
+//                        .collect(Collectors.toList())
         );
     }
 }
