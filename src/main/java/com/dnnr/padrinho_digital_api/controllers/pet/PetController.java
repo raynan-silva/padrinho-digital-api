@@ -37,8 +37,10 @@ public class PetController {
      */
     @GetMapping
     public ResponseEntity<Page<PetResponseDTO>> getAllPets(
-            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
-        Page<PetResponseDTO> petPage = petService.getAllPets(pageable);
+            @PageableDefault(size = 10, sort = "name") Pageable pageable,
+            @AuthenticationPrincipal User authenticatedUser
+    ) {
+        Page<PetResponseDTO> petPage = petService.getAllPets(pageable, authenticatedUser);
         return ResponseEntity.ok(petPage);
     }
 

@@ -11,6 +11,7 @@ import com.dnnr.padrinho_digital_api.entities.pet.CostHistory;
 import com.dnnr.padrinho_digital_api.entities.pet.Pet;
 import com.dnnr.padrinho_digital_api.entities.pet.PetStatus;
 import com.dnnr.padrinho_digital_api.entities.photo.Photo;
+import com.dnnr.padrinho_digital_api.entities.users.Godfather;
 import com.dnnr.padrinho_digital_api.entities.users.Manager;
 import com.dnnr.padrinho_digital_api.entities.users.User;
 import com.dnnr.padrinho_digital_api.entities.users.Volunteer;
@@ -20,6 +21,7 @@ import com.dnnr.padrinho_digital_api.repositories.pet.CostRepository;
 import com.dnnr.padrinho_digital_api.repositories.pet.PetRepository;
 import com.dnnr.padrinho_digital_api.repositories.pet.PetWithTotalCostProjection;
 import com.dnnr.padrinho_digital_api.repositories.photo.PhotoRepository;
+import com.dnnr.padrinho_digital_api.repositories.users.GodfatherRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.ManagerRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.VolunteerRepository;
 import com.dnnr.padrinho_digital_api.services.cost.CostService;
@@ -53,6 +55,9 @@ public class PetService {
 
     @Autowired
     CostService costService;
+
+    @Autowired
+    GodfatherRepository godfatherRepository;
 
     /**
      * CREATE
@@ -105,9 +110,19 @@ public class PetService {
      * Retorna todos os pets paginados com o custo total de despesas ativas.
      */
     @Transactional(readOnly = true)
-    public Page<PetResponseDTO> getAllPets(Pageable pageable) {
-        // Usa a nova query customizada que retorna a projeção
-        Page<PetWithTotalCostProjection> petPage = repository.findAllWithTotalCost(pageable);
+    public Page<PetResponseDTO> getAllPets(Pageable pageable, User user) {
+
+        Page<PetWithTotalCostProjection> petPage = switch (user.getRole()) {
+            case VOLUNTARIO, GERENTE -> {
+                Ong ong = getOngFromUser(user);
+                yield repository.findAllWithTotalCost_ByOng(ong.getId(), pageable);
+            }
+            case PADRINHO -> {
+                Godfather godfather = getGodfatherFromUser(user);
+                yield repository.findAllWithTotalCost_ForPadrinho(godfather.getId(), pageable);
+            }
+            case ADMIN -> repository.findAllWithTotalCost_Admin(pageable);
+        };
 
         // Mapeia a projeção para o PetResponseDTO usando o construtor de listagem
         return petPage.map(projection ->
@@ -214,6 +229,11 @@ public class PetService {
     }
 
     // --- MÉTODOS AUXILIARES ---
+
+    private Godfather getGodfatherFromUser(User user) {
+        return godfatherRepository.findByUser(user)
+                .orElseThrow(() -> new AccessDeniedException("Usuário autenticado não é um Padrinho."));
+    }
 
     /**
      * Encontra a ONG associada a um usuário (Gerente ou Voluntário).
