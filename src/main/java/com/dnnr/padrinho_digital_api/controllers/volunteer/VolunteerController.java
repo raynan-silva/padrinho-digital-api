@@ -48,6 +48,15 @@ public class VolunteerController {
         return ResponseEntity.ok(updatedDto);
     }
 
+    @PatchMapping("/{id}/reactivate")
+    public ResponseEntity<VolunteerResponseDTO> reactivateVolunteer(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        VolunteerResponseDTO updateDto = volunteerService.reactivateVolunteer(id, user);
+        return ResponseEntity.ok(updateDto);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteVolunteer(
             @PathVariable Long id,

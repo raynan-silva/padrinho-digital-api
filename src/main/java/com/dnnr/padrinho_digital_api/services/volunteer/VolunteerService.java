@@ -82,6 +82,29 @@ public class VolunteerService {
     }
 
     /**
+     * PATCH
+     * Gerente reativa um funcionário.
+     * Admin não pode reativar.
+     */
+    @Transactional
+    public VolunteerResponseDTO reactivateVolunteer(Long id, User authenticatedUser) {
+        if (authenticatedUser.getRole() != Role.GERENTE) {
+            throw new AccessDeniedException("Apenas Gerentes podem reativasr voluntários.");
+        }
+
+        // A checagem de permissão (se o voluntário é da ONG do gerente)
+        // é feita dentro deste método auxiliar.
+        Volunteer volunteer = findVolunteerByIdAndCheckPermission(id, authenticatedUser, "editar");
+
+        User userToUpdate = volunteer.getUser();
+        userToUpdate.setStatus(UserStatus.ATIVO);
+
+        userRepository.save(userToUpdate);
+
+        return new VolunteerResponseDTO(volunteer);
+    }
+
+    /**
      * DELETE (Lógico)
      * Admin ou Gerente (da sua ONG) podem desativar um voluntário.
      */
