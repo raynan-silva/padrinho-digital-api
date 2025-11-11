@@ -57,12 +57,12 @@ public class VolunteerController {
         return ResponseEntity.ok(updateDto);
     }
 
-    @DeleteMapping("/{id}")
+    @PatchMapping("/{id}/deactivate")
     public ResponseEntity<Void> deleteVolunteer(
             @PathVariable Long id,
             @AuthenticationPrincipal User authenticatedUser) {
 
-        volunteerService.deleteVolunteer(id, authenticatedUser);
+        volunteerService.deactivateVolunteer(id, authenticatedUser);
         return ResponseEntity.noContent().build();
     }
 }

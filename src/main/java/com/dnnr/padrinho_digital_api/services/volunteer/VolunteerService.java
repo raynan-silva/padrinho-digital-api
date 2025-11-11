@@ -109,7 +109,7 @@ public class VolunteerService {
      * Admin ou Gerente (da sua ONG) podem desativar um voluntário.
      */
     @Transactional
-    public void deleteVolunteer(Long id, User authenticatedUser) {
+    public void deactivateVolunteer(Long id, User authenticatedUser) {
         Volunteer volunteer = findVolunteerByIdAndCheckPermission(id, authenticatedUser, "excluir");
 
         User userToDeactivate = volunteer.getUser();
