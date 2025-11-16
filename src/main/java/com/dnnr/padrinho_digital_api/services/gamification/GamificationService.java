@@ -1,10 +1,14 @@
 package com.dnnr.padrinho_digital_api.services.gamification;
 
+import com.dnnr.padrinho_digital_api.dtos.gamification.GamificationStatusDTO;
+import com.dnnr.padrinho_digital_api.dtos.gamification.LevelDTO;
+import com.dnnr.padrinho_digital_api.dtos.gamification.SealDTO;
 import com.dnnr.padrinho_digital_api.entities.godfather.GodfatherLevel;
 import com.dnnr.padrinho_digital_api.entities.godfather.GodfatherSeal;
 import com.dnnr.padrinho_digital_api.entities.godfather.Seal;
 import com.dnnr.padrinho_digital_api.entities.sponsorship.SponsorshipStatus;
 import com.dnnr.padrinho_digital_api.entities.users.Godfather;
+import com.dnnr.padrinho_digital_api.entities.users.User;
 import com.dnnr.padrinho_digital_api.entities.users.UserStatus;
 import com.dnnr.padrinho_digital_api.repositories.donation_campaign.DonationRepository;
 import com.dnnr.padrinho_digital_api.repositories.godfather.GodfatherLevelRepository;
@@ -21,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +39,59 @@ public class GamificationService {
     private final GodfatherSealRepository godfatherSealRepository;
     private final DonationRepository donationRepository;
     private final SponsorshipHistoryRepository sponsorshipHistoryRepository;
+
+    @Transactional(readOnly = true)
+    public GamificationStatusDTO getGamificationStatus(User authenticatedUser) {
+
+        // 1. Encontra o Padrinho
+        Godfather godfather = godfatherRepository.findByUser(authenticatedUser)
+                .orElseThrow(() -> new EntityNotFoundException("Perfil de Padrinho não encontrado."));
+
+        // 2. Busca o Nível Atual
+        GodfatherLevel currentLevel = godfather.getCurrentLevel();
+        if (currentLevel == null) {
+            throw new EntityNotFoundException("Nível atual do padrinho não está configurado.");
+        }
+        LevelDTO currentLevelDTO = new LevelDTO(currentLevel);
+
+        // 3. Busca os Próximos Níveis
+        List<LevelDTO> nextLevels = levelRepository
+                .findByOrderGreaterThanOrderByOrderAsc(currentLevel.getOrder())
+                .stream()
+                .map(LevelDTO::new)
+                .toList();
+
+        // 4. Mapeia Selos Conquistados vs. Não Conquistados
+
+        // Todos os selos que o Padrinho já tem
+        Set<Long> conqueredSealIds = godfatherSealRepository
+                .findAllByGodfatherIdWithSeal(godfather.getId())
+                .stream()
+                .map(godfatherSeal -> godfatherSeal.getSeal().getId())
+                .collect(Collectors.toSet());
+
+        // Todos os selos que existem no sistema
+        List<Seal> allSealsInSystem = sealRepository.findAll();
+
+        // Separa as listas
+        List<SealDTO> conqueredSeals = allSealsInSystem.stream()
+                .filter(seal -> conqueredSealIds.contains(seal.getId()))
+                .map(SealDTO::new)
+                .toList();
+
+        List<SealDTO> unconqueredSeals = allSealsInSystem.stream()
+                .filter(seal -> !conqueredSealIds.contains(seal.getId()))
+                .map(SealDTO::new)
+                .toList();
+
+        // 5. Retorna o DTO completo
+        return new GamificationStatusDTO(
+                currentLevelDTO,
+                nextLevels,
+                conqueredSeals,
+                unconqueredSeals
+        );
+    }
 
     /**
      * Define o Nível 1 e o Selo de Cadastro para um novo Padrinho.
