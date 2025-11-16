@@ -17,8 +17,10 @@ public record OngResponseDTO(
         LocalDate registrationDate,
         String description,
         OngStatus status,
-        Address address,
-        List<String> photos
+        AddressResponseDTO address,
+        List<Photo> photos,
+        String photo_manager,
+        String manager_name
 ) {
     // Construtor de conveniência para mapear da Entidade Ong
     public OngResponseDTO(Ong ong) {
@@ -30,10 +32,11 @@ public record OngResponseDTO(
                 ong.getRegistrationDate(),
                 ong.getDescription(),
                 ong.getStatus(),
-                ong.getAddress(),
-                ong.getPhotos() != null ?
-                        ong.getPhotos().stream().map(Photo::getPhoto).toList() :
-                        Collections.emptyList()
+                new AddressResponseDTO(ong.getAddress()),
+                ong.getPhotos(),
+                ong.getManagers().getFirst().getUser().getPhoto(),
+                ong.getManagers().getFirst().getUser().getName()
         );
     }
 }
+

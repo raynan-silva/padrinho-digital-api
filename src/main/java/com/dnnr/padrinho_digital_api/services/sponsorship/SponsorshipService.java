@@ -17,8 +17,10 @@ import com.dnnr.padrinho_digital_api.repositories.pet.PetRepository;
 import com.dnnr.padrinho_digital_api.repositories.sponsorship.SponsorshipHistoryRepository;
 import com.dnnr.padrinho_digital_api.repositories.sponsorship.SponsorshipRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.GodfatherRepository;
+import com.dnnr.padrinho_digital_api.services.gamification.GamificationService;
 import com.dnnr.padrinho_digital_api.services.pet.PetService; // Para o metodo getOngFromUser
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,21 +32,16 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Service
+@RequiredArgsConstructor
 public class SponsorshipService {
 
-    @Autowired
-    private SponsorshipRepository repository;
-
-    @Autowired
-    private SponsorshipHistoryRepository historyRepository;
-    @Autowired
-    private GodfatherRepository godfatherRepository;
-    @Autowired
-    private PetRepository petRepository;
-    @Autowired
-    private OngRepository ongRepository;
-
-    @Autowired private PetService petService;
+    private final SponsorshipRepository repository;
+    private final SponsorshipHistoryRepository historyRepository;
+    private final GodfatherRepository godfatherRepository;
+    private final PetRepository petRepository;
+    private final OngRepository ongRepository;
+    private final PetService petService;
+    private final GamificationService gamificationService;
 
     /**
      * CREATE (Padrinho)
@@ -76,6 +73,8 @@ public class SponsorshipService {
         firstHistory.setEndDate(null);
 
         SponsorshipHistory savedHistory = historyRepository.save(firstHistory);
+
+        gamificationService.checkAndApplyMilestones(godfather.getId());
 
         // Retorna a view completa
         return new SponsorshipResponseDTO(savedSponsorship, savedHistory);
@@ -232,4 +231,6 @@ public class SponsorshipService {
                 throw new AccessDeniedException("Role não autorizada.");
         }
     }
+
+
 }

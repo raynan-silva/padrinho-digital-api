@@ -69,4 +69,14 @@ public class Address {
         this.cep = cep;
         this.ong = ong;
     }
+
+    public Address(String street, String number, String neighborhood, String city, String uf, String complement, String cep) {
+        this.street = street;
+        this.number = number;
+        this.neighborhood = neighborhood;
+        this.city = city;
+        this.uf = uf;
+        this.complement = complement;
+        this.cep = cep;
+    }
 }

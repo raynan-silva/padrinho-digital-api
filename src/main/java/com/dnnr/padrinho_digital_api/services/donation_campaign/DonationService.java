@@ -12,6 +12,8 @@ import com.dnnr.padrinho_digital_api.exceptions.ResourceNotFoundException;
 import com.dnnr.padrinho_digital_api.repositories.donation_campaign.DonationCampaignRepository;
 import com.dnnr.padrinho_digital_api.repositories.donation_campaign.DonationRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.GodfatherRepository;
+import com.dnnr.padrinho_digital_api.services.gamification.GamificationService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +22,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Service
+@RequiredArgsConstructor
 public class DonationService {
-    @Autowired
-    DonationRepository donationRepository;
-    @Autowired
-    DonationCampaignRepository campaignRepository;
-    @Autowired
-    GodfatherRepository godfatherRepository;
+
+    private final DonationRepository donationRepository;
+    private final DonationCampaignRepository campaignRepository;
+    private final GodfatherRepository godfatherRepository;
+    private final GamificationService gamificationService;
 
     @Transactional
     public DonationResponseDTO createDonation(CreateDonationDTO dto, User authenticatedUser) {
@@ -66,6 +68,8 @@ public class DonationService {
         donation.setDonationCampaign(campaign);
 
         Donation savedDonation = donationRepository.save(donation);
+
+        gamificationService.checkAndApplyMilestones(godfather.getId());
 
         return new DonationResponseDTO(savedDonation);
     }

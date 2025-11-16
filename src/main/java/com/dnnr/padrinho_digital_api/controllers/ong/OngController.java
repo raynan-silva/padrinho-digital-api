@@ -1,5 +1,6 @@
 package com.dnnr.padrinho_digital_api.controllers.ong;
 
+import com.dnnr.padrinho_digital_api.dtos.ong.OngProfileDTO;
 import com.dnnr.padrinho_digital_api.dtos.ong.OngResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.ong.UpdateOngDTO;
 import com.dnnr.padrinho_digital_api.dtos.photo.AddPhotosDTO;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,6 +37,14 @@ public class OngController {
     public ResponseEntity<OngResponseDTO> getOngById(@PathVariable Long id) {
         OngResponseDTO ong = ongService.getOngById(id);
         return ResponseEntity.ok(ong);
+    }
+
+    @GetMapping("/profile")
+    @PreAuthorize("hasRole('GERENTE')")
+    public ResponseEntity<OngProfileDTO> getProfile(
+            @AuthenticationPrincipal User authenticatedUser
+    ) {
+        return ResponseEntity.ok(ongService.getProfile(authenticatedUser));
     }
 
     @PutMapping("/{id}")

@@ -1,5 +1,6 @@
 package com.dnnr.padrinho_digital_api.services.ong;
 
+import com.dnnr.padrinho_digital_api.dtos.ong.OngProfileDTO;
 import com.dnnr.padrinho_digital_api.dtos.ong.OngResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.ong.UpdateOngDTO;
 import com.dnnr.padrinho_digital_api.entities.ong.Address;
@@ -10,10 +11,13 @@ import com.dnnr.padrinho_digital_api.entities.users.Manager;
 import com.dnnr.padrinho_digital_api.entities.users.User;
 import com.dnnr.padrinho_digital_api.exceptions.NotFoundException;
 import com.dnnr.padrinho_digital_api.exceptions.ResourceNotFoundException;
+import com.dnnr.padrinho_digital_api.exceptions.UserNotFoundException;
 import com.dnnr.padrinho_digital_api.repositories.ong.AddressRepository;
 import com.dnnr.padrinho_digital_api.repositories.ong.OngRepository;
 import com.dnnr.padrinho_digital_api.repositories.photo.PhotoRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.ManagerRepository;
+import com.dnnr.padrinho_digital_api.repositories.users.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,20 +27,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class OngService {
-    @Autowired
-    OngRepository repository;
 
-    @Autowired
-    AddressRepository addressRepository;
-
-    @Autowired
-    ManagerRepository managerRepository;
-
-    @Autowired
-    PhotoRepository photoRepository;
+    private final OngRepository repository;
+    private final UserRepository userRepository;
+    private final ManagerRepository managerRepository;
+    private final PhotoRepository photoRepository;
 
     /**
      * READ (Paginated)
@@ -61,6 +61,18 @@ public class OngService {
         return new OngResponseDTO(ong);
     }
 
+    @Transactional(readOnly = true)
+    public OngProfileDTO getProfile(User user) {
+        Manager manager = managerRepository.findByUser(user)
+                .orElseThrow(() -> new UserNotFoundException("Gerente não encontrado"));
+
+        Ong ong = manager.getOng();
+        Address address = ong.getAddress();
+
+        return new OngProfileDTO(manager, ong, address);
+
+    }
+
     /**
      * UPDATE (Partial)
      * Atualiza uma ong. Só permite se o usuário for da mesma ONG.
@@ -75,6 +87,15 @@ public class OngService {
         checkUserOngPermission(authenticatedUser, ong);
 
         // 3. Lógica de atualização parcial (só atualiza o que não for nulo)
+
+        if (data.manager_name() != null) {
+            authenticatedUser.setName(data.manager_name());
+        }
+
+        if (data.photo_manager() != null) {
+            authenticatedUser.setPhoto(data.photo_manager());
+        }
+
         if (data.name() != null) {
             ong.setName(data.name());
         }
@@ -113,6 +134,16 @@ public class OngService {
         if (data.complement() != null) {
             address.setComplement(data.complement());
         }
+
+        List<String> photos = data.photos_ong();
+        if (photos != null && !photos.isEmpty()) {
+            List<Photo> photoList = photos.stream()
+                    .map(Photo::new)
+                    .collect(Collectors.toList());
+            ong.setPhotos(photoList);
+        }
+
+        userRepository.save(authenticatedUser);
 
         Ong updatedOng = repository.save(ong);
 

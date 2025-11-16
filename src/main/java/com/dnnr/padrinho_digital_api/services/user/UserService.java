@@ -1,5 +1,8 @@
 package com.dnnr.padrinho_digital_api.services.user;
 
+import com.dnnr.padrinho_digital_api.dtos.user.ChangePasswordDTO;
+import com.dnnr.padrinho_digital_api.dtos.user.UpdateUserDTO;
+import com.dnnr.padrinho_digital_api.dtos.users.ProfileResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.RegisterDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.RegisterOngDTO;
 import com.dnnr.padrinho_digital_api.dtos.users.RegisterVolunteerDTO;
@@ -15,6 +18,8 @@ import com.dnnr.padrinho_digital_api.repositories.users.GodfatherRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.ManagerRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.UserRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.VolunteerRepository;
+import com.dnnr.padrinho_digital_api.services.gamification.GamificationService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,22 +29,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    UserRepository repository;
-    @Autowired
-    GodfatherRepository godfatherRepository;
-    @Autowired
-    ManagerRepository managerRepository;
-    @Autowired
-    AddressRepository addressRepository;
-    @Autowired
-    OngRepository ongRepository;
-    @Autowired
-    VolunteerRepository volunteerRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UserRepository repository;
+    private final GodfatherRepository godfatherRepository;
+    private final ManagerRepository managerRepository;
+    private final AddressRepository addressRepository;
+    private final OngRepository ongRepository;
+    private final VolunteerRepository volunteerRepository;
+    private final GamificationService gamificationService;
 
     @Transactional
     public void registerGodfather(RegisterDTO data){
@@ -53,6 +53,8 @@ public class UserService {
         Godfather godfather = new Godfather(user);
 
         this.godfatherRepository.save(godfather);
+
+        gamificationService.initializeNewGodfather(godfather);
     }
 
     @Transactional
@@ -110,5 +112,43 @@ public class UserService {
 
         Volunteer newVolunteer = new Volunteer(user, ong);
         this.volunteerRepository.save(newVolunteer);
+    }
+
+    /**
+     * Atualiza os dados (nome/email) do Padrinho.
+     */
+    @Transactional
+    public ProfileResponseDTO update(UpdateUserDTO data, User authenticatedUser) {
+
+        authenticatedUser.setName(data.name());
+        authenticatedUser.setPhoto(data.photo());
+
+        User updatedUser = repository.save(authenticatedUser);
+
+        return new ProfileResponseDTO(updatedUser);
+    }
+
+    /**
+     * Altera a senha do Padrinho autenticado.
+     */
+    @Transactional
+    public void changePassword(ChangePasswordDTO data, User authenticatedUser) {
+        // 1. Pega a nova senha
+        String newPassword = data.password();
+
+        // 2. Codifica a nova senha
+        String encodedPassword = passwordEncoder.encode(newPassword);
+
+        // 3. Atualiza a senha no objeto User autenticado
+        authenticatedUser.setPassword(encodedPassword);
+
+        // 4. Salva a alteração no banco
+        repository.save(authenticatedUser);
+    }
+
+    @Transactional
+    public void deactivateUser(User user) {
+        user.setStatus(UserStatus.INATIVO);
+        repository.save(user);
     }
 }
