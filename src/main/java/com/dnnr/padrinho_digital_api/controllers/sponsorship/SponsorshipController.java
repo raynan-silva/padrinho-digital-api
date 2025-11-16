@@ -60,4 +60,13 @@ public class SponsorshipController {
         SponsorshipResponseDTO response = service.getSponsorshipById(id, authenticatedUser);
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/{id}/deactivate")
+    public ResponseEntity<Void> disableSponsorship(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user
+    ) {
+        service.disableSponsorship(id, user);
+        return ResponseEntity.noContent().build();
+    }
 }

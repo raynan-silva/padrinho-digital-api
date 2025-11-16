@@ -22,7 +22,7 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
             "FROM Pet p " +
             "LEFT JOIN p.costs c " +
             "LEFT JOIN c.history ch ON ch.cost = c AND ch.endDate IS NULL " +
-            "WHERE p.status = 'APADRINHAVEL'" +            "GROUP BY p.id, p.ong.id", // Agrupa pela chave primária (e FKs se necessário)
+            "WHERE p.status = 'APADRINHAVEL'" + "GROUP BY p.id, p.ong.id", // Agrupa pela chave primária (e FKs se necessário)
             countQuery = "SELECT COUNT(p) FROM Pet p")
     Page<PetWithTotalCostProjection> findAllWithTotalCost(Pageable pageable);
 
@@ -52,23 +52,24 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
     Page<PetWithTotalCostProjection> findAllWithTotalCost_ByOng(@Param("ongId") Long ongId, Pageable pageable);
 
     /**
-     * Query para PADRINHO (Regra 1: Status 'APADRINHAVEL' e que o padrinho não apadrinhou)
+     * Query para PADRINHO (Regra 1: Status 'APADRINHAVEL' e que o apadrinhamento não está ATIVO)
      */
     @Query(value = "SELECT p as pet, " +
             "COALESCE(SUM(ch.monthlyAmount), 0.0) as totalCost " +
             "FROM Pet p " +
-            "LEFT JOIN p.costs c ON c.pet = p " +
-            "LEFT JOIN c.history ch ON ch.cost = c AND ch.endDate IS NULL " +
-            "WHERE p.status = 'APADRINHAVEL' " + // Filtro 1 da Regra 1
-            // Filtro 2 da Regra 1: "que esse padrinho ainda não apadrinhou"
-            "AND NOT EXISTS (SELECT 1 FROM Sponsorship s " +
-            "WHERE s.pet.id = p.id " +
-            "AND s.godfather.id = :godfatherId) " +
-            "GROUP BY p.id, p.ong.id",
+            "LEFT JOIN p.costs c " +
+            "LEFT JOIN c.history ch WITH ch.endDate IS NULL " +
+            "WHERE p.status = 'APADRINHAVEL' " +
+            "AND NOT EXISTS (SELECT 1 FROM SponsorshipHistory sh " +
+            "WHERE sh.sponsorship.pet.id = p.id " +
+            "AND sh.sponsorship.godfather.id = :godfatherId " +
+            "AND sh.endDate IS NULL) " +
+            "GROUP BY p",
             countQuery = "SELECT COUNT(p) FROM Pet p " +
                     "WHERE p.status = 'APADRINHAVEL' " +
-                    "AND NOT EXISTS (SELECT 1 FROM Sponsorship s " +
-                    "WHERE s.pet.id = p.id " +
-                    "AND s.godfather.id = :godfatherId)")
+                    "AND NOT EXISTS (SELECT 1 FROM SponsorshipHistory sh " +
+                    "WHERE sh.sponsorship.pet.id = p.id " +
+                    "AND sh.sponsorship.godfather.id = :godfatherId " +
+                    "AND sh.endDate IS NULL)")
     Page<PetWithTotalCostProjection> findAllWithTotalCost_ForPadrinho(@Param("godfatherId") Long godfatherId, Pageable pageable);
 }

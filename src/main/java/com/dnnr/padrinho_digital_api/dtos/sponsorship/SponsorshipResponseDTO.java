@@ -1,5 +1,6 @@
 package com.dnnr.padrinho_digital_api.dtos.sponsorship;
 
+import com.dnnr.padrinho_digital_api.entities.pet.Pet;
 import com.dnnr.padrinho_digital_api.entities.sponsorship.Sponsorship;
 import com.dnnr.padrinho_digital_api.entities.sponsorship.SponsorshipHistory;
 import com.dnnr.padrinho_digital_api.entities.sponsorship.SponsorshipStatus;
@@ -38,13 +39,15 @@ public record SponsorshipResponseDTO(
 
 // --- Sub-DTOs ---
 
-record PetInfoDTO(Long id, String name, String photoUrl) {
-    public PetInfoDTO(com.dnnr.padrinho_digital_api.entities.pet.Pet pet) {
+record PetInfoDTO(Long id, String name, String photoUrl, LocalDate birthDate, String profile) {
+    public PetInfoDTO(Pet pet) {
         this(
                 pet.getId(),
                 pet.getName(),
                 pet.getPhotos() != null && !pet.getPhotos().isEmpty() ?
-                        pet.getPhotos().get(0).getPhoto() : null // Pega a primeira foto
+                        pet.getPhotos().getFirst().getPhoto() : null, // Pega a primeira foto
+                pet.getBirthDate(),
+                pet.getProfile()
         );
     }
 }

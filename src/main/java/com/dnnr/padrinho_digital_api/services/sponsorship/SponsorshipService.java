@@ -10,7 +10,9 @@ import com.dnnr.padrinho_digital_api.entities.sponsorship.SponsorshipHistory;
 import com.dnnr.padrinho_digital_api.entities.sponsorship.SponsorshipStatus;
 import com.dnnr.padrinho_digital_api.entities.users.Godfather;
 import com.dnnr.padrinho_digital_api.entities.users.User;
+import com.dnnr.padrinho_digital_api.exceptions.BusinessException;
 import com.dnnr.padrinho_digital_api.exceptions.NotFoundException;
+import com.dnnr.padrinho_digital_api.exceptions.ResourceNotFoundException;
 import com.dnnr.padrinho_digital_api.exceptions.SponsorshipException;
 import com.dnnr.padrinho_digital_api.repositories.ong.OngRepository;
 import com.dnnr.padrinho_digital_api.repositories.pet.PetRepository;
@@ -30,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -54,30 +57,36 @@ public class SponsorshipService {
                 .orElseThrow(() -> new NotFoundException("Pet com ID " + data.petId() + " não encontrado."));
 
         // Regra: Padrinho não pode apadrinhar o mesmo pet duas vezes
-        repository.findByGodfatherAndPet(godfather, pet).ifPresent(s -> {
-            throw new SponsorshipException("Você já apadrinha este pet.");
-        });
+        Sponsorship sponsorship = repository.findByGodfatherAndPet(godfather, pet)
+                .orElseGet(() -> {
+                    // Se o vínculo não existe (primeiro apadrinhamento de todos), crie-o.
+                    Sponsorship newSponsorship = new Sponsorship();
+                    newSponsorship.setGodfather(godfather);
+                    newSponsorship.setPet(pet);
+                    return repository.save(newSponsorship);
+                }
+        );
 
-        // 1. Cria a relação principal
-        Sponsorship newSponsorship = new Sponsorship();
-        newSponsorship.setGodfather(godfather);
-        newSponsorship.setPet(pet);
-        Sponsorship savedSponsorship = repository.save(newSponsorship);
+        Optional<SponsorshipHistory> activeHistory = historyRepository.findCurrentHistoryBySponsorshipId(sponsorship.getId());
 
-        // 2. Cria o primeiro período (ATIVO)
-        SponsorshipHistory firstHistory = new SponsorshipHistory();
-        firstHistory.setSponsorship(savedSponsorship);
-        firstHistory.setStatus(SponsorshipStatus.ATIVO);
-        firstHistory.setMonthlyAmount(data.monthlyAmount());
-        firstHistory.setStartDate(data.startDate());
-        firstHistory.setEndDate(null);
+        if (activeHistory.isPresent()) {
+            // Se encontrou um histórico sem data fim, o apadrinhamento já está ativo.
+            throw new SponsorshipException("Você já possui um apadrinhamento ativo para este pet.");
+        }
 
-        SponsorshipHistory savedHistory = historyRepository.save(firstHistory);
+        SponsorshipHistory newHistory = new SponsorshipHistory();
+        newHistory.setSponsorship(sponsorship); // Vincula ao "pai" encontrado ou criado
+        newHistory.setStatus(SponsorshipStatus.ATIVO);
+        newHistory.setMonthlyAmount(data.monthlyAmount());
+        newHistory.setStartDate(data.startDate());
+        newHistory.setEndDate(null);
+
+        SponsorshipHistory savedHistory = historyRepository.save(newHistory);
 
         gamificationService.checkAndApplyMilestones(godfather.getId());
 
         // Retorna a view completa
-        return new SponsorshipResponseDTO(savedSponsorship, savedHistory);
+        return new SponsorshipResponseDTO(sponsorship, savedHistory);
     }
 
     /**
@@ -141,28 +150,36 @@ public class SponsorshipService {
      */
     @Transactional(readOnly = true)
     public Page<SponsorshipResponseDTO> listSponsorships(Pageable pageable, Long petId, Long ongId, User authenticatedUser) {
-        Page<Sponsorship> sponsorshipPage;
+
+        // Agora buscamos Page<SponsorshipHistory>
+        Page<SponsorshipHistory> historyPage;
 
         switch (authenticatedUser.getRole()) {
             case PADRINHO:
                 Godfather godfather = getGodfatherFromUser(authenticatedUser);
-                sponsorshipPage = repository.findByGodfather(godfather, pageable);
+                // Chama o novo método do historyRepository
+                historyPage = historyRepository.findBySponsorshipGodfatherAndEndDateIsNull(godfather, pageable);
                 break;
 
             case GERENTE, VOLUNTARIO:
                 Ong ong = petService.getOngFromUser(authenticatedUser);
-                sponsorshipPage = repository.findByPet_Ong(ong, pageable);
+                // Chama o novo método do historyRepository
+                historyPage = historyRepository.findBySponsorshipPetOngAndEndDateIsNull(ong, pageable);
                 break;
 
             case ADMIN:
                 if (petId != null) {
                     Pet pet = petRepository.findById(petId)
                             .orElseThrow(() -> new NotFoundException("Pet com ID " + petId + " não encontrado."));
-                    sponsorshipPage = repository.findByPet(pet, pageable);
+                    // Chama o novo método do historyRepository
+                    historyPage = historyRepository.findBySponsorshipPetAndEndDateIsNull(pet, pageable);
+
                 } else if (ongId != null) {
                     Ong admminOng = ongRepository.findById(ongId)
                             .orElseThrow(() -> new EntityNotFoundException("ONG com ID " + ongId + " não encontrada."));
-                    sponsorshipPage = repository.findByPet_Ong(admminOng, pageable);
+                    // Chama o novo método do historyRepository
+                    historyPage = historyRepository.findBySponsorshipPetOngAndEndDateIsNull(admminOng, pageable);
+
                 } else {
                     throw new SponsorshipException("Admin deve prover 'petId' ou 'ongId' para filtrar.");
                 }
@@ -172,14 +189,9 @@ public class SponsorshipService {
                 throw new AccessDeniedException("Role não autorizada.");
         }
 
-        // Converte Page<Sponsorship> para Page<SponsorshipResponseDTO>
-        return sponsorshipPage.map(s -> {
-            // Esta é uma consulta N+1. Para performance, seria necessário otimizar.
-            // Mas para o CRUD funcionar, é o suficiente.
-            SponsorshipHistory current = historyRepository.findCurrentHistoryBySponsorshipId(s.getId()).orElse(null);
-            if (current == null) return null; // Ignora apadrinhamentos sem histórico (não deve acontecer)
-            return new SponsorshipResponseDTO(s, current);
-        });
+        // Converte Page<SponsorshipHistory> para Page<SponsorshipResponseDTO>
+        // O N+1 foi resolvido!
+        return historyPage.map(history -> new SponsorshipResponseDTO(history.getSponsorship(), history));
     }
 
     /**
@@ -200,7 +212,36 @@ public class SponsorshipService {
         return new SponsorshipResponseDTO(sponsorship, current);
     }
 
+    @Transactional
+    public void disableSponsorship(Long sponsorshipId, User authenticatedUser) {
+        Sponsorship sponsorship = repository.findById(sponsorshipId)
+                .orElseThrow(() -> new ResourceNotFoundException("Apadrinhamento não encontrado"));
+
+        checkPermission(sponsorship, authenticatedUser);
+
+        SponsorshipHistory activeHistory = sponsorship.getHistory().stream()
+                .filter(h -> h.getStatus() == SponsorshipStatus.ATIVO)
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("Não foi possível encontrar um apadrinhamento ativo para encerrar."));
+
+        activeHistory.setStatus(SponsorshipStatus.ENCERRADO);
+        activeHistory.setEndDate(LocalDate.now());
+
+        historyRepository.save(activeHistory);
+    }
+
     // --- MÉTODOS AUXILIARES ---
+
+    /**
+     * Método auxiliar para garantir que o usuário logado
+     * é o padrinho associado a este apadrinhamento.
+     */
+    private void checkPermission(Sponsorship sponsorship, User authenticatedUser) {
+        // (Assumindo que Godfather tem um campo 'user')
+        if (!sponsorship.getGodfather().getUser().getId().equals(authenticatedUser.getId())) {
+            throw new AccessDeniedException("Você não tem permissão para modificar este apadrinhamento.");
+        }
+    }
 
     private Godfather getGodfatherFromUser(User user) {
         return godfatherRepository.findByUser(user)
