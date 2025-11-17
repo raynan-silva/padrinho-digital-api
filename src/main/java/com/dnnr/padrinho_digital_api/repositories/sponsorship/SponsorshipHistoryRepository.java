@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface SponsorshipHistoryRepository extends JpaRepository<SponsorshipHistory, Long> {
@@ -28,4 +29,11 @@ public interface SponsorshipHistoryRepository extends JpaRepository<SponsorshipH
 
     // Para Admin (por Pet): Busca históricos ativos de um pet
     Page<SponsorshipHistory> findBySponsorshipPetAndEndDateIsNull(Pet pet, Pageable pageable);
+
+    @Query("SELECT sh FROM SponsorshipHistory sh " +
+            "JOIN FETCH sh.sponsorship s " +
+            "JOIN FETCH s.pet p " +
+            "JOIN FETCH p.ong o " +
+            "WHERE s.godfather.id = :godfatherId AND sh.endDate IS NULL")
+    List<SponsorshipHistory> findAllActiveSponsorshipsByGodfatherId(@Param("godfatherId") Long godfatherId);
 }

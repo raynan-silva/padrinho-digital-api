@@ -32,8 +32,11 @@ public class SecurityConfigurations {
         return httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .cors(Customizer.withDefaults())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(authorize -> authorize
+                        //web socket
+                        .requestMatchers("/ws/**").permitAll()
+
                         // Admin
                         .requestMatchers(HttpMethod.POST, "/admin/**").hasRole("ADMIN")
 
@@ -86,7 +89,7 @@ public class SecurityConfigurations {
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 
         // 5. Permite credenciais (se você usar cookies/sessões)
-        // configuration.setAllowCredentials(true); // Descomente se necessário
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration); // Aplica para todas as rotas
