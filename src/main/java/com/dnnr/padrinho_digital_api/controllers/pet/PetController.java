@@ -1,6 +1,7 @@
 package com.dnnr.padrinho_digital_api.controllers.pet;
 
 import com.dnnr.padrinho_digital_api.dtos.pet.CreatePetDTO;
+import com.dnnr.padrinho_digital_api.dtos.pet.PetPublicResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.pet.PetResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.pet.UpdatePetDTO;
 import com.dnnr.padrinho_digital_api.dtos.photo.AddPhotosDTO;
@@ -29,6 +30,14 @@ public class PetController {
         PetResponseDTO newPet = petService.createPet(data, authenticatedUser);
         // Retorna 201 Created
         return ResponseEntity.status(HttpStatus.CREATED).body(newPet);
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<Page<PetPublicResponseDTO>> publicPetSearch(
+            @PageableDefault(size = 10, sort = "name") Pageable pegeable
+    ){
+        Page<PetPublicResponseDTO> petPage = petService.publicSearchPets(pegeable);
+        return ResponseEntity.ok(petPage);
     }
 
     /**

@@ -59,6 +59,9 @@ public class SecurityConfigurations {
                         .requestMatchers(HttpMethod.PUT, "/ong/**").hasRole("GERENTE")
                         .requestMatchers(HttpMethod.DELETE, "/ong/**").hasRole("GERENTE")
 
+                        // Public Routes
+                        .requestMatchers(HttpMethod.GET, "/pet/public").permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)

@@ -1,10 +1,7 @@
 package com.dnnr.padrinho_digital_api.services.pet;
 
 import com.dnnr.padrinho_digital_api.dtos.cost.CostResponseDTO;
-import com.dnnr.padrinho_digital_api.dtos.pet.CreatePetDTO;
-import com.dnnr.padrinho_digital_api.dtos.pet.PetCostItemDTO;
-import com.dnnr.padrinho_digital_api.dtos.pet.PetResponseDTO;
-import com.dnnr.padrinho_digital_api.dtos.pet.UpdatePetDTO;
+import com.dnnr.padrinho_digital_api.dtos.pet.*;
 import com.dnnr.padrinho_digital_api.entities.ong.Ong;
 import com.dnnr.padrinho_digital_api.entities.pet.Cost;
 import com.dnnr.padrinho_digital_api.entities.pet.CostHistory;
@@ -127,6 +124,15 @@ public class PetService {
         // Mapeia a projeção para o PetResponseDTO usando o construtor de listagem
         return petPage.map(projection ->
                 new PetResponseDTO(projection.getPet(), projection.getTotalCost())
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PetPublicResponseDTO> publicSearchPets(Pageable pageable) {
+        Page<PetWithTotalCostProjection> petPage = repository.findAllWithTotalCost_Admin(pageable);
+
+        return petPage.map(projection ->
+                new PetPublicResponseDTO(projection.getPet(), projection.getTotalCost())
         );
     }
 

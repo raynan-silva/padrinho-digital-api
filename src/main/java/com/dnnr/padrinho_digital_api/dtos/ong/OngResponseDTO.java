@@ -20,7 +20,8 @@ public record OngResponseDTO(
         AddressResponseDTO address,
         List<Photo> photos,
         String photo_manager,
-        String manager_name
+        String manager_name,
+        String manager_email
 ) {
     // Construtor de conveniência para mapear da Entidade Ong
     public OngResponseDTO(Ong ong) {
@@ -35,7 +36,8 @@ public record OngResponseDTO(
                 new AddressResponseDTO(ong.getAddress()),
                 ong.getPhotos(),
                 ong.getManagers().getFirst().getUser().getPhoto(),
-                ong.getManagers().getFirst().getUser().getName()
+                ong.getManagers().getFirst().getUser().getName(),
+                ong.getManagers().getFirst().getUser().getEmail()
         );
     }
 }
