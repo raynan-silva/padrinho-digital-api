@@ -13,4 +13,12 @@ public interface DonationRepository extends JpaRepository<Donation, Long> {
 
     @Query("SELECT COALESCE(SUM(d.amount), 0) FROM Donation d WHERE d.godfather.id = :godfatherId")
     Optional<BigDecimal> sumAmountByGodfatherId(@Param("godfatherId") Long godfatherId);
+
+    // 3. Somar total doado em campanhas
+    @Query("SELECT COALESCE(SUM(d.amount), 0) FROM Donation d WHERE d.godfather.id = :godfatherId")
+    BigDecimal sumTotalDonationsByGodfather(@Param("godfatherId") Long godfatherId);
+
+    // 4. Contar em quantas campanhas diferentes participou
+    @Query("SELECT COUNT(DISTINCT d.donationCampaign) FROM Donation d WHERE d.godfather.id = :godfatherId")
+    long countDistinctCampaignsByGodfather(@Param("godfatherId") Long godfatherId);
 }

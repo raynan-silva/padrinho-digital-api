@@ -1,6 +1,7 @@
 package com.dnnr.padrinho_digital_api.controllers.sponsorship;
 
 import com.dnnr.padrinho_digital_api.dtos.sponsorship.CreateSponsorshipDTO;
+import com.dnnr.padrinho_digital_api.dtos.sponsorship.SponsorshipDashboardDTO;
 import com.dnnr.padrinho_digital_api.dtos.sponsorship.SponsorshipResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.sponsorship.UpdateSponsorshipDTO;
 import com.dnnr.padrinho_digital_api.entities.users.User;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -68,5 +70,15 @@ public class SponsorshipController {
     ) {
         service.disableSponsorship(id, user);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/dashboard")
+    @PreAuthorize("hasRole('PADRINHO')") // Garante que apenas padrinhos acessem
+    public ResponseEntity<SponsorshipDashboardDTO> getDashboard(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User authenticatedUser) {
+
+        SponsorshipDashboardDTO dashboard = service.getSponsorshipDashboard(id, authenticatedUser);
+        return ResponseEntity.ok(dashboard);
     }
 }

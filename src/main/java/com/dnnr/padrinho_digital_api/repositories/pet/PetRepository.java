@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface PetRepository extends JpaRepository<Pet, Long> {
@@ -72,4 +74,22 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
                     "AND sh.sponsorship.godfather.id = :godfatherId " +
                     "AND sh.endDate IS NULL)")
     Page<PetWithTotalCostProjection> findAllWithTotalCost_ForPadrinho(@Param("godfatherId") Long godfatherId, Pageable pageable);
+
+    long countByOngId(Long ongId);
+
+    @Query("SELECT COUNT(p) FROM Pet p WHERE p.ong.id = :ongId AND p.status = 'APADRINHADO'")
+    long countSponsoredByOngId(@Param("ongId") Long ongId);
+
+    @Query("SELECT COUNT(p) FROM Pet p WHERE p.ong.id = :ongId AND p.status = 'APADRINHAVEL'")
+    long countAvailableByOngId(@Param("ongId") Long ongId);
+
+    // Animais criados nos últimos 7 dias
+    @Query("SELECT COUNT(p) FROM Pet p WHERE p.ong.id = :ongId AND p.createdAt >= :date")
+    long countNewPetsSince(@Param("ongId") Long ongId, @Param("date") LocalDateTime date);
+
+    // Lista de animais recentes
+    @Query("SELECT p FROM Pet p LEFT JOIN FETCH p.photos WHERE p.ong.id = :ongId ORDER BY p.createdAt DESC")
+    List<Pet> findRecentByOngId(@Param("ongId") Long ongId, Pageable pageable);
+
+    List<Pet> findAllByOngId(Long ongId);
 }

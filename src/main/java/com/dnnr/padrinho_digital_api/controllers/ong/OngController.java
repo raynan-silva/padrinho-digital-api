@@ -1,9 +1,11 @@
 package com.dnnr.padrinho_digital_api.controllers.ong;
 
+import com.dnnr.padrinho_digital_api.dtos.ong.OngDashboardDTO;
 import com.dnnr.padrinho_digital_api.dtos.ong.OngProfileDTO;
 import com.dnnr.padrinho_digital_api.dtos.ong.OngResponseDTO;
 import com.dnnr.padrinho_digital_api.dtos.ong.UpdateOngDTO;
 import com.dnnr.padrinho_digital_api.dtos.photo.AddPhotosDTO;
+import com.dnnr.padrinho_digital_api.dtos.report.OngReportDTO;
 import com.dnnr.padrinho_digital_api.entities.users.User;
 import com.dnnr.padrinho_digital_api.services.ong.OngService;
 import jakarta.validation.Valid;
@@ -80,5 +82,17 @@ public class OngController {
 
         ongService.removePhoto(id, photoId, authenticatedUser);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('GERENTE')")
+    public ResponseEntity<OngDashboardDTO> getDashboard(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ongService.getDashboardData(user));
+    }
+
+    @GetMapping("/reports")
+    @PreAuthorize("hasRole('GERENTE')")
+    public ResponseEntity<OngReportDTO> getReport(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ongService.getReportData(user));
     }
 }

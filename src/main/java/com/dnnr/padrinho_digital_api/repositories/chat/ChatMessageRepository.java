@@ -25,4 +25,13 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     @Modifying
     @Query("UPDATE ChatMessage m SET m.status = 'LIDA' WHERE m.conversation.id = :conversationId AND m.receiver.id = :receiverId AND m.status <> 'LIDA'")
     void markMessagesAsRead(@Param("conversationId") Long conversationId, @Param("receiverId") Long receiverId);
+
+    // 5. Contar mensagens recebidas (Total)
+    // Nota: O filtro 'receiver.id' usa o ID do User, não do Godfather
+    long countByReceiverId(Long userId);
+
+    // Contar mensagens não lidas onde o destinatário é o Usuário (Gerente) da ONG
+    @Query("SELECT COUNT(m) FROM ChatMessage m " +
+            "WHERE m.receiver.id = :userId AND m.status != 'LIDA'")
+    long countUnreadMessages(@Param("userId") Long userId);
 }

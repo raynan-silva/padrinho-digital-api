@@ -1,10 +1,11 @@
 package com.dnnr.padrinho_digital_api.services.sponsorship;
 
-import com.dnnr.padrinho_digital_api.dtos.sponsorship.CreateSponsorshipDTO;
-import com.dnnr.padrinho_digital_api.dtos.sponsorship.SponsorshipResponseDTO;
-import com.dnnr.padrinho_digital_api.dtos.sponsorship.UpdateSponsorshipDTO;
+import com.dnnr.padrinho_digital_api.dtos.sponsorship.*;
 import com.dnnr.padrinho_digital_api.entities.ong.Ong;
+import com.dnnr.padrinho_digital_api.entities.pet.Cost;
+import com.dnnr.padrinho_digital_api.entities.pet.CostHistory;
 import com.dnnr.padrinho_digital_api.entities.pet.Pet;
+import com.dnnr.padrinho_digital_api.entities.photo.Photo;
 import com.dnnr.padrinho_digital_api.entities.sponsorship.Sponsorship;
 import com.dnnr.padrinho_digital_api.entities.sponsorship.SponsorshipHistory;
 import com.dnnr.padrinho_digital_api.entities.sponsorship.SponsorshipStatus;
@@ -31,7 +32,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.Period;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -228,6 +234,121 @@ public class SponsorshipService {
         activeHistory.setEndDate(LocalDate.now());
 
         historyRepository.save(activeHistory);
+    }
+
+    @Transactional(readOnly = true)
+    public SponsorshipDashboardDTO getSponsorshipDashboard(Long sponsorshipId, User authenticatedUser) {
+        // 1. Busca o Apadrinhamento e valida existência
+        Sponsorship sponsorship = repository.findById(sponsorshipId)
+                .orElseThrow(() -> new ResourceNotFoundException("Apadrinhamento com Id: " + sponsorshipId + "não encontrado."));
+
+        // 2. Validação de Segurança: O usuário logado é realmente o padrinho?
+        // (Assumindo que Godfather tem relação com User)
+        if (!sponsorship.getGodfather().getUser().getId().equals(authenticatedUser.getId())) {
+            throw new AccessDeniedException("Você não tem permissão para visualizar este apadrinhamento.");
+        }
+
+        Pet pet = sponsorship.getPet();
+
+        // --- 1. ANIMAL DATA ---
+        String profileImage = (pet.getPhotos() != null && !pet.getPhotos().isEmpty())
+                ? pet.getPhotos().get(0).getPhoto()
+                : null;
+
+        AnimalDataDTO animalData = new AnimalDataDTO(
+                pet.getName(),
+                pet.getBreed(), // Ex: "Pet - Labrador"
+                calculateAge(pet.getBirthDate()),
+                sponsorship.getCreatedAt().toLocalDate(),
+                profileImage
+        );
+
+        // --- 2. FINANCIAL DATA ---
+
+        // A. Contribuição Atual (Pega o histórico onde endDate é nulo)
+
+        BigDecimal currentContribution = sponsorship.getHistory().stream()
+                .filter(h -> h.getEndDate() == null)
+                .findFirst()
+                .map(SponsorshipHistory::getMonthlyAmount)
+                .orElse(BigDecimal.ZERO);
+
+        // B. Despesas Totais e Detalhes
+        BigDecimal totalExpenses = BigDecimal.ZERO;
+        List<ExpenseItemDTO> expenseDetails = new ArrayList<>();
+
+        if (pet.getCosts() != null) {
+            for (Cost cost : pet.getCosts()) {
+                // Pega apenas o custo ATIVO do Pet
+                CostHistory activeCost = cost.getHistory().stream()
+                        .filter(h -> h.getEndDate() == null)
+                        .findFirst()
+                        .orElse(null);
+
+                if (activeCost != null) {
+                    totalExpenses = totalExpenses.add(activeCost.getMonthlyAmount());
+
+                    expenseDetails.add(new ExpenseItemDTO(
+                            activeCost.getName(), // Ex: "Food"
+                            activeCost.getStartDate(),
+                            activeCost.getDescription(),
+                            activeCost.getMonthlyAmount()
+                    ));
+                }
+            }
+        }
+
+        // C. Cálculo de Cobertura (%)
+        String coveragePercentage = "0%";
+        if (totalExpenses.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal percentage = currentContribution
+                    .divide(totalExpenses, 2, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            // Se passar de 100%, fixa em 100% (opcional)
+            if (percentage.compareTo(BigDecimal.valueOf(100)) > 0) {
+                coveragePercentage = "100%";
+            } else {
+                coveragePercentage = percentage.intValue() + "%";
+            }
+        } else if (currentContribution.compareTo(BigDecimal.ZERO) > 0) {
+            // Se não tem despesas cadastradas, mas tem doação, a cobertura é total
+            coveragePercentage = "100%";
+        }
+
+        FinancialDataDTO financialData = new FinancialDataDTO(
+                totalExpenses,
+                currentContribution,
+                coveragePercentage,
+                expenseDetails
+        );
+
+        // --- 3. GALLERY DATA ---
+        List<GalleryItemDTO> gallery = new ArrayList<>();
+        if (pet.getPhotos() != null) {
+            gallery = pet.getPhotos().stream()
+                    // Ordena por ID decrescente (fotos novas primeiro)
+                    .sorted(Comparator.comparing(Photo::getId).reversed())
+                    .map(photo -> new GalleryItemDTO(
+                            photo.getId(),
+                            LocalDate.now(), // Placeholder: Adicione 'createdAt' na entidade Photo para ter a data real
+                            photo.getPhoto() // Retorna a string Base64
+                    ))
+                    .toList();
+        }
+
+        return new SponsorshipDashboardDTO(animalData, financialData, gallery);
+    }
+
+    // Método auxiliar para calcular idade
+    private String calculateAge(LocalDate birthDate) {
+        if (birthDate == null) return "Sem idade";
+        int years = Period.between(birthDate, LocalDate.now()).getYears();
+        if (years == 0) {
+            int months = Period.between(birthDate, LocalDate.now()).getMonths();
+            return months + " meses";
+        }
+        return years + " anos";
     }
 
     // --- MÉTODOS AUXILIARES ---

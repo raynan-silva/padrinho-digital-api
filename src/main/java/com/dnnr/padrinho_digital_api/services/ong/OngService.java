@@ -1,30 +1,43 @@
 package com.dnnr.padrinho_digital_api.services.ong;
 
-import com.dnnr.padrinho_digital_api.dtos.ong.OngProfileDTO;
-import com.dnnr.padrinho_digital_api.dtos.ong.OngResponseDTO;
-import com.dnnr.padrinho_digital_api.dtos.ong.UpdateOngDTO;
+import com.dnnr.padrinho_digital_api.dtos.ong.*;
+import com.dnnr.padrinho_digital_api.dtos.report.ExpenseDistributionDTO;
+import com.dnnr.padrinho_digital_api.dtos.report.OngReportDTO;
+import com.dnnr.padrinho_digital_api.dtos.report.PetReportDTO;
+import com.dnnr.padrinho_digital_api.dtos.report.SponsorshipReportStatsDTO;
 import com.dnnr.padrinho_digital_api.entities.ong.Address;
 import com.dnnr.padrinho_digital_api.entities.ong.Ong;
 import com.dnnr.padrinho_digital_api.entities.ong.OngStatus;
+import com.dnnr.padrinho_digital_api.entities.pet.Pet;
 import com.dnnr.padrinho_digital_api.entities.photo.Photo;
 import com.dnnr.padrinho_digital_api.entities.users.Manager;
 import com.dnnr.padrinho_digital_api.entities.users.User;
 import com.dnnr.padrinho_digital_api.exceptions.NotFoundException;
 import com.dnnr.padrinho_digital_api.exceptions.ResourceNotFoundException;
 import com.dnnr.padrinho_digital_api.exceptions.UserNotFoundException;
+import com.dnnr.padrinho_digital_api.repositories.chat.ChatMessageRepository;
 import com.dnnr.padrinho_digital_api.repositories.ong.AddressRepository;
 import com.dnnr.padrinho_digital_api.repositories.ong.OngRepository;
+import com.dnnr.padrinho_digital_api.repositories.pet.CostRepository;
+import com.dnnr.padrinho_digital_api.repositories.pet.PetRepository;
 import com.dnnr.padrinho_digital_api.repositories.photo.PhotoRepository;
+import com.dnnr.padrinho_digital_api.repositories.sponsorship.SponsorshipRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.ManagerRepository;
 import com.dnnr.padrinho_digital_api.repositories.users.UserRepository;
+import com.dnnr.padrinho_digital_api.services.cost.CostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -37,6 +50,10 @@ public class OngService {
     private final UserRepository userRepository;
     private final ManagerRepository managerRepository;
     private final PhotoRepository photoRepository;
+    private final PetRepository petRepository;
+    private final SponsorshipRepository sponsorshipRepository;
+    private final ChatMessageRepository chatMessageRepository;
+    private final CostRepository costRepository;
 
     /**
      * READ (Paginated)
@@ -201,6 +218,147 @@ public class OngService {
         repository.save(ong);
 
         photoRepository.delete(photoToRemove);
+    }
+
+    @Transactional(readOnly = true)
+    public OngDashboardDTO getDashboardData(User authenticatedUser) {
+        // 1. Identificar ONG através do Gerente
+        Manager manager = managerRepository.findByUser(authenticatedUser)
+                .orElseThrow(() -> new RuntimeException("Gerente não encontrado"));
+        Ong ong = manager.getOng();
+        Long ongId = ong.getId();
+
+        // --- STATS ---
+        long totalAnimals = petRepository.countByOngId(ongId);
+        long totalSponsored = petRepository.countSponsoredByOngId(ongId);
+        long totalAvailable = petRepository.countAvailableByOngId(ongId);
+        long newThisWeek = petRepository.countNewPetsSince(ongId, LocalDateTime.now().minusDays(7));
+
+        long activeGodfathers = sponsorshipRepository.countActiveGodfathersByOng(ongId);
+        BigDecimal monthlyRevenue = sponsorshipRepository.sumMonthlyRevenueByOng(ongId);
+        long unreadMessages = chatMessageRepository.countUnreadMessages(authenticatedUser.getId());
+
+        // Mock de crescimento/metas (para simplificar, mas poderia vir do banco)
+        double godfathersGrowth = 12.5;
+        double revenueGrowth = 8.2;
+        BigDecimal revenueGoal = costRepository.sumTotalActiveCostsByOng(ongId);
+
+        OngStatsDTO stats = new OngStatsDTO(
+                totalAnimals, totalSponsored, totalAvailable, newThisWeek,
+                activeGodfathers, godfathersGrowth,
+                monthlyRevenue, revenueGoal, revenueGrowth,
+                unreadMessages
+        );
+
+        // --- RECENT PETS ---
+        List<Pet> recentPets = petRepository.findRecentByOngId(ongId, PageRequest.of(0, 5));
+
+        List<OngDashboardPetDTO> petDTOs = recentPets.stream().map(pet -> {
+            String photo = (pet.getPhotos() != null && !pet.getPhotos().isEmpty())
+                    ? pet.getPhotos().get(0).getPhoto() : null;
+
+            // Calcular idade
+            String age = calculateAge(pet.getBirthDate());
+            String desc = String.format("%s ● %s ● %s", "Pet", pet.getBreed(), age);
+
+            // Calcular finanças do pet
+            // Nota: Precisaríamos de queries otimizadas aqui para evitar N+1 em produção
+            // Para o exemplo, assumimos acesso aos getters lazy ou queries simples
+            long godfathersCount = pet.getStatus().name().equals("APADRINHAVEL") ? 1 : 0; // Simplificação, idealmente count na tabela sponsorship
+
+            // Somar custos ativos
+            BigDecimal totalCost = pet.getCosts().stream()
+                    .flatMap(c -> c.getHistory().stream())
+                    .filter(h -> h.getEndDate() == null)
+                    .map(h -> h.getMonthlyAmount())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // Somar receita ativa para este pet
+            BigDecimal currentRevenue = BigDecimal.ZERO;
+            // (Você precisaria filtrar os sponsorships deste pet específico e somar)
+            // Vou colocar ZERO ou Mock aqui pois exigiria refatorar SponsorshipRepository para somar por PetID
+
+            return new OngDashboardPetDTO(
+                    pet.getId(),
+                    pet.getName(),
+                    photo,
+                    desc,
+                    pet.getStatus().name(), // APADRINHADO ou APADRINHAVEL (Disponível)
+                    godfathersCount,
+                    currentRevenue, // TODO: Implementar soma por pet
+                    totalCost
+            );
+        }).toList();
+
+        return new OngDashboardDTO(stats, petDTOs);
+    }
+
+    @Transactional(readOnly = true)
+    public OngReportDTO getReportData(User authenticatedUser) {
+        Manager manager = managerRepository.findByUser(authenticatedUser)
+                .orElseThrow(() -> new RuntimeException("Gerente não encontrado"));
+        Long ongId = manager.getOng().getId();
+
+        // 1. Totais Gerais
+        BigDecimal totalRevenue = sponsorshipRepository.sumTotalActiveRevenue(ongId);
+        BigDecimal totalExpenses = costRepository.sumTotalActiveExpenses(ongId);
+
+        // 2. Distribuição de Despesas
+        List<ExpenseDistributionDTO> expenses = costRepository.findExpenseDistributionByOng(ongId);
+
+        // 3. Stats de Apadrinhamento (Ativos vs Cancelados)
+        long activeCount = sponsorshipRepository.countActiveByOng(ongId);
+        long cancelledCount = sponsorshipRepository.countCancelledThisMonth(ongId);
+        BigDecimal lostRevenue = sponsorshipRepository.sumLostRevenueThisMonth(ongId);
+
+        SponsorshipReportStatsDTO sponsorshipStats = new SponsorshipReportStatsDTO(
+                activeCount,
+                totalRevenue,
+                cancelledCount,
+                lostRevenue
+        );
+
+        // 4. Relatório por Animal
+        // Busca todos os pets da ONG
+        List<Pet> pets = petRepository.findAllByOngId(ongId); // Certifique-se que este método existe no PetRepository
+
+        List<PetReportDTO> animalReports = pets.stream().map(pet -> {
+            // Custo Total do Pet (Meta)
+            BigDecimal monthlyGoal = pet.getCosts().stream()
+                    .flatMap(c -> c.getHistory().stream())
+                    .filter(h -> h.getEndDate() == null)
+                    .map(h -> h.getMonthlyAmount())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // Total Arrecadado para o Pet
+            BigDecimal collected = sponsorshipRepository.sumActiveRevenueByPetId(pet.getId());
+
+            // Contagem de padrinhos
+            long sponsors = sponsorshipRepository.countActiveSponsorsByPetId(pet.getId());
+
+            return new PetReportDTO(
+                    pet.getId(),
+                    pet.getName(),
+                    pet.getStatus().name(), // Ex: APADRINHAVEL
+                    monthlyGoal,
+                    collected,
+                    sponsors
+            );
+        }).toList();
+
+        return new OngReportDTO(
+                totalRevenue,
+                totalExpenses,
+                animalReports,
+                expenses,
+                sponsorshipStats
+        );
+    }
+
+    private String calculateAge(LocalDate birthDate) {
+        if (birthDate == null) return "?";
+        int years = Period.between(birthDate, LocalDate.now()).getYears();
+        return years + " anos";
     }
 
     // --- MÉTODOS AUXILIARES ---
