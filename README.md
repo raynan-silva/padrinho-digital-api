@@ -2,11 +2,19 @@
 
 **Backend robusto e escalável para conectar corações generosos a animais que precisam de amor e cuidado**
 
+[![Vídeo de Apresentação](https://img.shields.io/badge/▶️-Vídeo%20de%20Apresentação-red)](https://drive.google.com/file/d/1rFa5vZ1ksvYSBQuLu9WqXAop5gFPWb2F/view?usp=sharing)
+
 ---
 
 ## 📋 Sobre o Projeto
 
 **Padrinho Digital API** é o backend da plataforma Padrinho Digital, desenvolvido por alunos da **Universidade de Vila Velha**. A API fornece todos os serviços necessários para conectar pessoas generosas a ONGs e abrigos de animais através de um sistema completo de apadrinhamento, transparência financeira e comunicação em tempo real.
+
+---
+
+## 🔗 Repositório do Frontend
+
+Frontend disponível em: [padrinho-digital](https://github.com/raynan-silva/padrinho-digital)
 
 ### 🎯 Objetivo da API
 
